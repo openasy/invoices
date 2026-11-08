@@ -1,0 +1,6101 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OpenAsy Invoices",
+    "version": "0.1.0",
+    "description": "Invoices and credit notes with KDV and withholding, issued as e-Fatura or e-Arşiv through the GİB integrator invoices.yaml sets, with payments, reminders, recurring invoices, bank statements and exports for the accountant. Amounts are whole numbers of minor units (kuruş for TRY). Viewers read everything; editors change everything but erasures; admins also erase.",
+    "license": {
+      "name": "AGPL-3.0-only",
+      "identifier": "AGPL-3.0-only"
+    }
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "security": [
+    {
+      "session": []
+    },
+    {
+      "apiToken": []
+    },
+    {
+      "adminToken": []
+    }
+  ],
+  "paths": {
+    "/api/v1/version": {
+      "get": {
+        "operationId": "version",
+        "tags": [
+          "Product"
+        ],
+        "summary": "The product and its version",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "operationId": "products",
+        "tags": [
+          "Product"
+        ],
+        "summary": "The install's other products",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/summary": {
+      "get": {
+        "operationId": "summary",
+        "tags": [
+          "Product"
+        ],
+        "summary": "What is owed and overdue, by currency and customer",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Summary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "settings",
+        "tags": [
+          "Product"
+        ],
+        "summary": "The settings, as invoices.yaml sets them",
+        "description": "Read-only: the file is the only way to change them.\n\nNeeds the viewer role.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer"
+      }
+    },
+    "/api/v1/rates": {
+      "get": {
+        "operationId": "rate",
+        "tags": [
+          "Product"
+        ],
+        "summary": "TCMB's rate an invoice of a day takes",
+        "parameters": [
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "description": "USD, EUR, GBP…",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "description": "The invoice's day; today when left out.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rate"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/customers": {
+      "get": {
+        "operationId": "listCustomers",
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Customers",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Part of the name, a tax number or an email.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "post": {
+        "operationId": "createCustomer",
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Add a customer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/customers/{id}": {
+      "get": {
+        "operationId": "getCustomer",
+        "tags": [
+          "Customers"
+        ],
+        "summary": "A customer with their invoices",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The customer's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "patch": {
+        "operationId": "updateCustomer",
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Change a customer",
+        "description": "Invoices already issued keep the buyer as it was.\n\nNeeds the editor role.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The customer's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      },
+      "delete": {
+        "operationId": "removeCustomer",
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Delete a customer with no issued invoices",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The customer's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted, with their drafts."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/customers/{id}/check": {
+      "post": {
+        "operationId": "checkCustomer",
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Ask the integrator whether the customer is an e-Fatura user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The customer's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Customer"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/catalog": {
+      "get": {
+        "operationId": "listCatalog",
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Products and services",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Part of the name or code.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "all",
+            "in": "query",
+            "required": false,
+            "description": "true to list inactive ones too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "post": {
+        "operationId": "createCatalogItem",
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Add a product or service",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/catalog/{id}": {
+      "patch": {
+        "operationId": "updateCatalogItem",
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Change a product or service",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The item's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      },
+      "delete": {
+        "operationId": "removeCatalogItem",
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Delete it, or take it off the list when an invoice has it",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The item's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Gone."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/invoices": {
+      "get": {
+        "operationId": "listInvoices",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Invoices and credit notes",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "owed, overdue, or a status.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "invoice or credit_note.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customer",
+            "in": "query",
+            "required": false,
+            "description": "A customer's id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Part of the number or the customer's name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Issued on or after.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Issued on or before.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "post": {
+        "operationId": "createInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Draft an invoice",
+        "description": "A draft has no number; issuing gives it one.\n\nNeeds the editor role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Drafted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/invoices/{id}": {
+      "get": {
+        "operationId": "getInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "An invoice with its payments and history",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id or number.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "patch": {
+        "operationId": "updateInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Change a draft, or an invoice the integrator refused",
+        "description": "A sent invoice is never changed (409); a credit note corrects it. A refused one keeps its number, date and currency.\n\nNeeds the editor role.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      },
+      "delete": {
+        "operationId": "removeInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Delete a draft",
+        "description": "An invoice with a number is kept, so no number is skipped.\n\nNeeds the editor role.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/invoices/{id}/issue": {
+      "post": {
+        "operationId": "issueInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Issue: e-Fatura or e-Arşiv, the next number, the UBL-TR XML, and on to the integrator",
+        "description": "Asks the integrator whether the buyer is an e-Fatura user, takes TCMB's rate for a foreign currency, gives the next number of the series and year, writes and checks the UBL-TR XML, and queues it to be sent. An invoice the integrator refused is issued again under its number with a new ETTN.\n\nNeeds the editor role.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/invoices/{id}/credit-notes": {
+      "post": {
+        "operationId": "creditNote",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Draft a credit note (an IADE invoice) of an issued invoice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditNoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Drafted; issue it like an invoice.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/invoices/{id}/cancel": {
+      "post": {
+        "operationId": "cancelInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Cancel an e-Arşiv invoice through the integrator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/invoices/{id}/email": {
+      "post": {
+        "operationId": "emailInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "Email the invoice, or a reminder, now",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/invoices/{id}/payments": {
+      "post": {
+        "operationId": "addPayment",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Record a payment, in full or in part",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/invoices/{id}/pdf": {
+      "get": {
+        "operationId": "invoicePdf",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "The invoice as PDF",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The PDF; a draft is marked TASLAK.",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/invoices/{id}/xml": {
+      "get": {
+        "operationId": "invoiceXml",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "The UBL-TR XML sent to the integrator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UBL-TR 1.2, unsigned: the integrator signs it.",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/payments/{id}": {
+      "delete": {
+        "operationId": "removePayment",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Remove a payment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The payment's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/bank/statements": {
+      "post": {
+        "operationId": "importStatement",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Import a bank statement and match it to invoices",
+        "description": "A line of money in pays the owed invoice whose number is in its text, or the one owed invoice of exactly that amount whose customer's name or tax number is in it. Lines seen before are not added again.\n\nNeeds the editor role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatementImport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Imported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/bank/lines": {
+      "get": {
+        "operationId": "listBankLines",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Bank lines",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "description": "unmatched (default), matched, ignored, outgoing or all.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankLineList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/bank/lines/{id}": {
+      "post": {
+        "operationId": "resolveBankLine",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Match a line to an invoice by hand, or ignore it",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The line's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankLineResolve"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankLine"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/recurring": {
+      "get": {
+        "operationId": "listRecurring",
+        "tags": [
+          "Recurring"
+        ],
+        "summary": "Recurring invoices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurringList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "post": {
+        "operationId": "createRecurring",
+        "tags": [
+          "Recurring"
+        ],
+        "summary": "Invoice a customer every few months",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecurringInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recurring"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/recurring/{id}": {
+      "get": {
+        "operationId": "getRecurring",
+        "tags": [
+          "Recurring"
+        ],
+        "summary": "A recurring invoice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The recurring invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recurring"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "patch": {
+        "operationId": "updateRecurring",
+        "tags": [
+          "Recurring"
+        ],
+        "summary": "Change a recurring invoice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The recurring invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecurringInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recurring"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      },
+      "delete": {
+        "operationId": "removeRecurring",
+        "tags": [
+          "Recurring"
+        ],
+        "summary": "Stop and delete a recurring invoice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The recurring invoice's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted; invoices it made stay."
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor",
+        "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/exports/invoices.csv": {
+      "get": {
+        "operationId": "exportInvoices",
+        "tags": [
+          "Exports"
+        ],
+        "summary": "Issued invoices and credit notes for the accountant",
+        "description": "Semicolons and decimal commas, as Excel opens them in Turkish: KDV by rate, withholding, TRY values.\n\nNeeds the viewer role.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "First day, YYYY-MM-DD; the first of this month when left out.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Last day; today when left out.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer"
+      }
+    },
+    "/api/v1/exports/payments.csv": {
+      "get": {
+        "operationId": "exportPayments",
+        "tags": [
+          "Exports"
+        ],
+        "summary": "Payments received",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "First day, YYYY-MM-DD; the first of this month when left out.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Last day; today when left out.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/exports/ubl.zip": {
+      "get": {
+        "operationId": "exportUbl",
+        "tags": [
+          "Exports"
+        ],
+        "summary": "The UBL-TR XML files",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "First day, YYYY-MM-DD; the first of this month when left out.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Last day; today when left out.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A ZIP of NUMBER.xml files.",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/lookup": {
+      "get": {
+        "operationId": "lookup",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "A customer's invoices and what they owe, for Helpdesk",
+        "description": "By email (exactly, lowercased) or by an invoice number. 404 when nothing matches.\n\nNeeds the viewer role.",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "description": "The customer's email.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "description": "An invoice number.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoicesLookup"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer"
+      }
+    },
+    "/api/v1/billable-items": {
+      "get": {
+        "operationId": "listBillable",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "Billable items waiting for an invoice",
+        "parameters": [
+          {
+            "name": "customer",
+            "in": "query",
+            "required": false,
+            "description": "A customer's id.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "required": false,
+            "description": "false to list invoiced ones too.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillableList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
+      "post": {
+        "operationId": "addBillable",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "Send billable hours, from Time",
+        "description": "Each waits for an invoice that takes it (billableItems on a draft). The same external_id is taken once.\n\nNeeds the editor role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillableBatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillableResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/stock-movements": {
+      "get": {
+        "operationId": "stockMovements",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "Goods that left the stock or came back, for Inventory",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "description": "The last seq read; 0 for the first.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Up to 1000.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovements"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
+    "/api/v1/crm/deals/{id}": {
+      "post": {
+        "operationId": "draftFromDeal",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "Draft an invoice from a won CRM deal",
+        "description": "Its accepted quote's lines, else its name and value. Once per deal: the same deal answers 200 with its invoice.\n\nNeeds the editor role.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The CRM deal's id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Drafted before.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Drafted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "502": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/erasures": {
+      "post": {
+        "operationId": "erase",
+        "tags": [
+          "Contracts"
+        ],
+        "summary": "Delete a person on request, as Audience asks",
+        "description": "Waiting while one of their invoices is unpaid. Customers with no issued invoice are deleted; one with issued invoices loses their email and phone, and the invoices are kept for ten years (VUK 253, TTK 82).\n\nNeeds the admin role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErasureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Done.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErasureAnswer"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Waiting.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErasureAnswer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "admin"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Alive",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readyz",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Ready",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not ready.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics",
+        "tags": [
+          "Product"
+        ],
+        "summary": "Prometheus metrics",
+        "responses": {
+          "200": {
+            "description": "Metrics.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "openasy_session"
+      },
+      "apiToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An API token made under Settings, API tokens."
+      },
+      "adminToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Tests only."
+      }
+    },
+    "responses": {
+      "Problem": {
+        "description": "A problem (RFC 9457).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable; match on this.",
+            "enum": [
+              "invalid-token",
+              "invalid-json",
+              "invalid-body",
+              "forbidden",
+              "not-found",
+              "conflict",
+              "not-linked",
+              "link-failed",
+              "rate-limited",
+              "payload-too-large",
+              "internal-error",
+              "unauthenticated",
+              "invalid-credentials",
+              "mfa-required",
+              "mfa-setup-required",
+              "cross-site"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "Status": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "Version": {
+        "type": "object",
+        "required": [
+          "product",
+          "version"
+        ],
+        "properties": {
+          "product": {
+            "const": "invoices"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "ProductList": {
+        "type": "object",
+        "required": [
+          "products"
+        ],
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "url"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Summary": {
+        "type": "object",
+        "required": [
+          "owed",
+          "customers",
+          "drafts",
+          "sending",
+          "refused",
+          "unmatchedBankLines",
+          "openBillableItems"
+        ],
+        "properties": {
+          "owed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "currency",
+                "owed",
+                "overdue",
+                "invoices",
+                "overdueInvoices"
+              ],
+              "properties": {
+                "currency": {
+                  "type": "string"
+                },
+                "owed": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "overdue": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "invoices": {
+                  "type": "integer"
+                },
+                "overdueInvoices": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "customer",
+                "currency",
+                "owed",
+                "overdue"
+              ],
+              "properties": {
+                "customer": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "owed": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "overdue": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                }
+              }
+            }
+          },
+          "drafts": {
+            "type": "integer"
+          },
+          "sending": {
+            "type": "integer"
+          },
+          "refused": {
+            "type": "integer"
+          },
+          "unmatchedBankLines": {
+            "type": "integer"
+          },
+          "openBillableItems": {
+            "type": "integer"
+          }
+        }
+      },
+      "Settings": {
+        "type": "object",
+        "required": [
+          "timeZone",
+          "currency",
+          "language",
+          "seller",
+          "sellerSet",
+          "series",
+          "paymentDays",
+          "kdvRates",
+          "withholding",
+          "exemptions",
+          "units",
+          "integrator",
+          "exchangeRates",
+          "reminders",
+          "emailOnIssue",
+          "mail",
+          "bank",
+          "crm",
+          "file",
+          "text"
+        ],
+        "properties": {
+          "timeZone": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "seller": {
+            "type": "object"
+          },
+          "sellerSet": {
+            "type": "boolean"
+          },
+          "series": {
+            "type": "object",
+            "required": [
+              "eFatura",
+              "eArsiv"
+            ],
+            "properties": {
+              "eFatura": {
+                "type": "string"
+              },
+              "eArsiv": {
+                "type": "string"
+              }
+            }
+          },
+          "paymentDays": {
+            "type": "integer"
+          },
+          "kdvRates": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "withholding": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "name",
+                "share"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "share": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "exemptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "name",
+                "exempt"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "exempt": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "name"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "integrator": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "provider",
+                  "url",
+                  "profile",
+                  "keySet"
+                ],
+                "properties": {
+                  "provider": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "profile": {
+                    "type": "string"
+                  },
+                  "keySet": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exchangeRates": {
+            "type": "object",
+            "required": [
+              "url",
+              "rate"
+            ],
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "rate": {
+                "type": "string"
+              }
+            }
+          },
+          "reminders": {
+            "type": "object",
+            "required": [
+              "before",
+              "after",
+              "at"
+            ],
+            "properties": {
+              "before": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "after": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "at": {
+                "type": "string"
+              }
+            }
+          },
+          "emailOnIssue": {
+            "type": "boolean"
+          },
+          "mail": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "host",
+                  "port",
+                  "from"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "type": "integer"
+                  },
+                  "from": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bank": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "iban",
+                "currency",
+                "format"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "iban": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "format": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "crm": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "url",
+                  "wonDeals"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "wonDeals": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "file": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "path",
+                  "appliedAt",
+                  "error",
+                  "warnings"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "appliedAt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "text": {
+            "type": "string",
+            "description": "The file as it was applied."
+          }
+        }
+      },
+      "Rate": {
+        "type": "object",
+        "required": [
+          "currency",
+          "date",
+          "bulletin",
+          "kind",
+          "rate"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "bulletin": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ],
+            "description": "The TCMB bulletin the rate is from: the last one before date."
+          },
+          "kind": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "taxId",
+          "kind",
+          "taxOffice",
+          "address",
+          "email",
+          "phone",
+          "currency",
+          "paymentDays",
+          "crmCompany",
+          "eInvoice",
+          "notes",
+          "owed",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "taxId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "VKN (10 digits) or TCKN (11); 11111111111 for a person who gives none; null until it is known."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "company",
+                  "person"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taxOffice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "address": {
+            "type": "object",
+            "required": [
+              "street",
+              "district",
+              "city",
+              "postalCode",
+              "country"
+            ],
+            "properties": {
+              "street": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "district": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "city": {
+                "type": "string"
+              },
+              "postalCode": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "country": {
+                "type": "string"
+              }
+            }
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paymentDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "crmCompany": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "The CRM company this customer is."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "eInvoice": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "registered",
+                  "aliases",
+                  "checkedAt"
+                ],
+                "properties": {
+                  "registered": {
+                    "type": "boolean",
+                    "description": "On GİB's e-Fatura list, as the integrator answered: its invoices go as e-Fatura, others as e-Arşiv."
+                  },
+                  "aliases": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "checkedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "currency",
+                "amount",
+                "overdue"
+              ],
+              "properties": {
+                "currency": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "overdue": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                }
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CustomerDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Customer"
+          },
+          {
+            "type": "object",
+            "required": [
+              "invoices",
+              "billableItems"
+            ],
+            "properties": {
+              "invoices": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              },
+              "billableItems": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BillableItem"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "CustomerInput": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "taxId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taxOffice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "address": {
+            "type": "object",
+            "required": [
+              "city"
+            ],
+            "properties": {
+              "street": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "district": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "city": {
+                "type": "string"
+              },
+              "postalCode": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "country": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paymentDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "crmCompany": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomerList": {
+        "type": "object",
+        "required": [
+          "customers"
+        ],
+        "properties": {
+          "customers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            }
+          }
+        }
+      },
+      "CatalogItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "unit",
+          "unitPrice",
+          "currency",
+          "kdvRate",
+          "withholding",
+          "exemption",
+          "stock",
+          "active",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "description": "A UN/ECE Rec. 20 code: C62 piece, HUR hour, DAY, MON month, ANN year, KGM, LTR, MTR, MTK, MTQ, KWH, SET."
+          },
+          "unitPrice": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "kdvRate": {
+            "type": "integer"
+          },
+          "withholding": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "A withholding (tevkifat) code, such as 602 or 624."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exemption": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "A KDV exemption code, needed with 0% KDV, such as 301 or 351."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stock": {
+            "type": "boolean",
+            "description": "Goods Inventory counts: issuing moves them out of the stock."
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CatalogInput": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "kdvRate": {
+            "type": "integer"
+          },
+          "withholding": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exemption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stock": {
+            "type": "boolean"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CatalogList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogItem"
+            }
+          }
+        }
+      },
+      "LineInput": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "product": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "A catalog item's id or code; its name, unit, price and taxes are the defaults."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Above 0, up to three decimals; 1 when left out."
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "discount": {
+            "type": "number",
+            "description": "Percent, 0 to 100."
+          },
+          "kdvRate": {
+            "type": "integer"
+          },
+          "withholding": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exemption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Invoice": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "owed",
+          "channel",
+          "profile",
+          "type",
+          "number",
+          "uuid",
+          "customer",
+          "issueDate",
+          "issueTime",
+          "dueDate",
+          "currency",
+          "rate",
+          "notes",
+          "orderRef",
+          "period",
+          "original",
+          "source",
+          "sourceRef",
+          "lines",
+          "totals",
+          "tryTotals",
+          "paid",
+          "credited",
+          "balance",
+          "overdue",
+          "daysOverdue",
+          "paidAt",
+          "integrator",
+          "alias",
+          "email",
+          "emailTo",
+          "emailedAt",
+          "createdAt",
+          "createdBy",
+          "issuedAt",
+          "issuedBy",
+          "updatedAt",
+          "url",
+          "pdf",
+          "xml"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invoice",
+              "credit_note"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "queued",
+              "waiting",
+              "delivered",
+              "accepted",
+              "rejected",
+              "refused",
+              "failed",
+              "cancelled"
+            ],
+            "description": "draft; queued (numbered, to be sent); waiting (the integrator has it); delivered (GİB took it); accepted or rejected (a TICARIFATURA's buyer answered); refused (the integrator refused it before GİB: fix it and issue again); failed (GİB refused it); cancelled (an e-Arşiv invoice)."
+          },
+          "owed": {
+            "type": "boolean",
+            "description": "An issued invoice that counts as owed: queued, waiting, delivered or accepted."
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "e-fatura",
+                  "e-arsiv"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "TEMELFATURA",
+                  "TICARIFATURA",
+                  "EARSIVFATURA"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "SATIS",
+                  "TEVKIFAT",
+                  "ISTISNA",
+                  "IADE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "number": {
+            "anyOf": [
+              {
+                "type": "string",
+                "examples": [
+                  "ABC2026000000001"
+                ],
+                "description": "GİB's 16 characters: series, year, nine digits. null for a draft."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "uuid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "The ETTN."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "customer": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "issueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issueTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "currency": {
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "value",
+                  "date",
+                  "source"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "examples": [
+                      "34.5678"
+                    ]
+                  },
+                  "date": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date",
+                        "examples": [
+                          "2026-11-09"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "source": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "tcmb",
+                          "manual"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "orderRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "start",
+                  "end"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-11-09"
+                    ]
+                  },
+                  "end": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-11-09"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "original": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "number"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "number": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "manual, crm, recurring, credit."
+          },
+          "sourceRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "product",
+                "code",
+                "name",
+                "description",
+                "quantity",
+                "unit",
+                "unitPrice",
+                "discount",
+                "kdvRate",
+                "withholding",
+                "exemption",
+                "net",
+                "kdv",
+                "withheld"
+              ],
+              "properties": {
+                "product": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "code": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "quantity": {
+                  "type": "number",
+                  "description": "Up to three decimals."
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "unitPrice": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "discount": {
+                  "type": "number",
+                  "description": "Percent, up to two decimals."
+                },
+                "kdvRate": {
+                  "type": "integer"
+                },
+                "withholding": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "share"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "share": {
+                          "type": "string",
+                          "examples": [
+                            "9/10"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "exemption": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "net": {
+                  "type": "integer",
+                  "description": "Without KDV, after the discount."
+                },
+                "kdv": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "withheld": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                }
+              }
+            }
+          },
+          "totals": {
+            "type": "object",
+            "required": [
+              "gross",
+              "discount",
+              "net",
+              "kdv",
+              "withheld",
+              "total",
+              "payable",
+              "kdvBreakdown",
+              "withholdingBreakdown"
+            ],
+            "properties": {
+              "gross": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "discount": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "net": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "kdv": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "withheld": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "total": {
+                "type": "integer",
+                "description": "With KDV."
+              },
+              "payable": {
+                "type": "integer",
+                "description": "With KDV, less the withheld KDV: what the buyer pays."
+              },
+              "kdvBreakdown": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rate",
+                    "exemption",
+                    "base",
+                    "amount"
+                  ],
+                  "properties": {
+                    "rate": {
+                      "type": "integer"
+                    },
+                    "exemption": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "base": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    }
+                  }
+                }
+              },
+              "withholdingBreakdown": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "share",
+                    "base",
+                    "amount"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "share": {
+                      "type": "string"
+                    },
+                    "base": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "tryTotals": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "net",
+                  "kdv",
+                  "withheld",
+                  "total",
+                  "payable"
+                ],
+                "properties": {
+                  "net": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  },
+                  "kdv": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  },
+                  "withheld": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  },
+                  "total": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  },
+                  "payable": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paid": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "credited": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "balance": {
+            "type": "integer",
+            "description": "What is still owed: payable less payments and credit notes."
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "daysOverdue": {
+            "type": "integer"
+          },
+          "paidAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "integrator": {
+            "type": "object",
+            "required": [
+              "ref",
+              "detail",
+              "attempts"
+            ],
+            "properties": {
+              "ref": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "detail": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "attempts": {
+                "type": "integer"
+              }
+            }
+          },
+          "alias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "emailTo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "emailedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issuedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "type": "string"
+          },
+          "pdf": {
+            "type": "string"
+          },
+          "xml": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "InvoiceDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Invoice"
+          },
+          {
+            "type": "object",
+            "required": [
+              "payments",
+              "creditNotes",
+              "reminders",
+              "events"
+            ],
+            "properties": {
+              "payments": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Payment"
+                }
+              },
+              "creditNotes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "number",
+                    "status",
+                    "payable",
+                    "issueDate"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "payable": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    },
+                    "issueDate": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date",
+                          "examples": [
+                            "2026-11-09"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "reminders": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "days",
+                    "sentAt",
+                    "error"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "before",
+                        "after"
+                      ]
+                    },
+                    "days": {
+                      "type": "integer"
+                    },
+                    "sentAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "at",
+                    "by",
+                    "what",
+                    "detail"
+                  ],
+                  "properties": {
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "by": {
+                      "type": "string"
+                    },
+                    "what": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "InvoiceInput": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "customer": {
+            "description": "A customer id, or { id }, { taxId }, { email } or { crmCompany }."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "issueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineInput"
+            }
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "orderRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "start",
+                  "end"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-11-09"
+                    ]
+                  },
+                  "end": {
+                    "type": "string",
+                    "format": "date",
+                    "examples": [
+                      "2026-11-09"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "TRY per unit with up to four decimals; null takes TCMB's rate of the day before the invoice."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "emailTo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "billableItems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Billable items (ids or external ids) added as lines."
+          }
+        },
+        "additionalProperties": false
+      },
+      "InvoiceList": {
+        "type": "object",
+        "required": [
+          "invoices"
+        ],
+        "properties": {
+          "invoices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Invoice"
+            }
+          }
+        }
+      },
+      "IssueRequest": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ],
+            "description": "Today when left out; at most seven days ago (VUK 231/5), never before the series' last."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreditNoteRequest": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "line"
+              ],
+              "properties": {
+                "line": {
+                  "type": "integer"
+                },
+                "quantity": {
+                  "type": "number"
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Which lines are returned and how many; every line in full when left out."
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "EmailRequest": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "issued",
+              "reminder"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Payment": {
+        "type": "object",
+        "required": [
+          "id",
+          "invoice",
+          "date",
+          "amount",
+          "method",
+          "reference",
+          "note",
+          "bankLine",
+          "createdAt",
+          "createdBy"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "invoice": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "bank",
+              "cash",
+              "card",
+              "other"
+            ]
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bankLine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentInput": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "bank",
+              "cash",
+              "card",
+              "other"
+            ]
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "StatementImport": {
+        "type": "object",
+        "required": [
+          "account",
+          "content"
+        ],
+        "properties": {
+          "account": {
+            "type": "string",
+            "description": "An account id under bank in the file."
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "The file's text: CSV or MT940."
+          }
+        },
+        "additionalProperties": false
+      },
+      "StatementResult": {
+        "type": "object",
+        "required": [
+          "statement",
+          "lines",
+          "added",
+          "duplicates",
+          "matched",
+          "unmatched",
+          "outgoing"
+        ],
+        "properties": {
+          "statement": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "integer"
+          },
+          "added": {
+            "type": "integer"
+          },
+          "duplicates": {
+            "type": "integer"
+          },
+          "matched": {
+            "type": "integer"
+          },
+          "unmatched": {
+            "type": "integer"
+          },
+          "outgoing": {
+            "type": "integer"
+          }
+        }
+      },
+      "BankLine": {
+        "type": "object",
+        "required": [
+          "id",
+          "account",
+          "date",
+          "amount",
+          "currency",
+          "description",
+          "reference",
+          "state",
+          "invoice"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "account": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Minor units; money in above 0, money out below."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "matched",
+              "unmatched",
+              "ignored",
+              "outgoing"
+            ]
+          },
+          "invoice": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "number"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "number": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "BankLineList": {
+        "type": "object",
+        "required": [
+          "lines"
+        ],
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankLine"
+            }
+          }
+        }
+      },
+      "BankLineResolve": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "invoice": {
+            "type": "string"
+          },
+          "ignore": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Recurring": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "customer",
+          "currency",
+          "lines",
+          "notes",
+          "everyMonths",
+          "dayOfMonth",
+          "start",
+          "end",
+          "next",
+          "mode",
+          "active",
+          "made",
+          "lastInvoice",
+          "lastError",
+          "createdAt",
+          "createdBy"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "customer": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineInput"
+            }
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "everyMonths": {
+            "type": "integer"
+          },
+          "dayOfMonth": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "issue",
+              "draft"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "made": {
+            "type": "integer"
+          },
+          "lastInvoice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string"
+          }
+        }
+      },
+      "RecurringInput": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "customer": {
+            "description": "A customer id, or { id }, { taxId }, { email } or { crmCompany }."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineInput"
+            }
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "everyMonths": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date",
+                "examples": [
+                  "2026-11-09"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "issue",
+              "draft"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecurringList": {
+        "type": "object",
+        "required": [
+          "recurring"
+        ],
+        "properties": {
+          "recurring": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Recurring"
+            }
+          }
+        }
+      },
+      "InvoicesLookup": {
+        "type": "object",
+        "required": [
+          "customer",
+          "owed",
+          "invoices"
+        ],
+        "properties": {
+          "customer": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "email",
+              "taxId",
+              "url"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "taxId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          },
+          "owed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "currency",
+                "amount",
+                "overdue"
+              ],
+              "properties": {
+                "currency": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "overdue": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                }
+              }
+            }
+          },
+          "invoices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "number",
+                "kind",
+                "date",
+                "due",
+                "currency",
+                "payable",
+                "balance",
+                "status",
+                "overdue",
+                "url"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "invoice",
+                    "credit_note"
+                  ]
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "examples": [
+                    "2026-11-09"
+                  ]
+                },
+                "due": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date",
+                      "examples": [
+                        "2026-11-09"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "payable": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "balance": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "status": {
+                  "type": "string"
+                },
+                "overdue": {
+                  "type": "boolean"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "BillableBatch": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "external_id",
+                "customer",
+                "date",
+                "description",
+                "quantity",
+                "unitPrice"
+              ],
+              "properties": {
+                "external_id": {
+                  "type": "string",
+                  "description": "The sender's id; the same one is taken once."
+                },
+                "source": {
+                  "type": "string",
+                  "description": "time when left out."
+                },
+                "customer": {
+                  "description": "{ taxId }, { email }, { crmCompany } or { id }, or a customer id."
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "examples": [
+                    "2026-11-09"
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number",
+                  "description": "Hours, or units of unit."
+                },
+                "unit": {
+                  "type": "string",
+                  "description": "HUR when left out."
+                },
+                "unitPrice": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "kdvRate": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "BillableResult": {
+        "type": "object",
+        "required": [
+          "added",
+          "existing",
+          "items"
+        ],
+        "properties": {
+          "added": {
+            "type": "integer"
+          },
+          "existing": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "BillableItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "externalId",
+          "source",
+          "customer",
+          "date",
+          "description",
+          "quantity",
+          "unit",
+          "unitPrice",
+          "currency",
+          "kdvRate",
+          "invoice"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "customer": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "integer",
+            "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "kdvRate": {
+            "type": "integer"
+          },
+          "invoice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "BillableList": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillableItem"
+            }
+          }
+        }
+      },
+      "StockMovements": {
+        "type": "object",
+        "required": [
+          "movements",
+          "next"
+        ],
+        "properties": {
+          "movements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "seq",
+                "invoice",
+                "number",
+                "product",
+                "code",
+                "quantity",
+                "unit",
+                "date",
+                "at"
+              ],
+              "properties": {
+                "seq": {
+                  "type": "integer"
+                },
+                "invoice": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "string"
+                },
+                "product": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "code": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "number",
+                  "description": "Below 0 left the stock (an invoice); above 0 came back (a credit note, a cancelled or rejected invoice)."
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "examples": [
+                    "2026-11-09"
+                  ]
+                },
+                "at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "next": {
+            "type": "integer",
+            "description": "Ask again with after=next."
+          }
+        }
+      },
+      "ErasureRequest": {
+        "type": "object",
+        "required": [
+          "reference",
+          "product",
+          "people"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "product": {
+            "const": "audience"
+          },
+          "people": {
+            "type": "object",
+            "required": [
+              "emails",
+              "phones",
+              "userIds"
+            ],
+            "properties": {
+              "emails": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "phones": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "userIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErasureAnswer": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "done",
+              "waiting"
+            ]
+          },
+          "deleted": {
+            "type": "integer"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

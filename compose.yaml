@@ -1,0 +1,40 @@
+# Invoices. The seller, number series, taxes, the GİB integrator, reminders and bank accounts are in invoices.yaml;
+# invoices are made through the API (there are no screens yet).
+#
+#   openssl rand -hex 32 > openasy-kek   # the product's key: sign-in secrets (ADR 0021). Keep it with your backups
+#   docker compose up -d
+#   docker compose logs invoices | grep 'no owner yet'   # the one-time link that creates the owner account
+services:
+  invoices:
+    image: ghcr.io/openasy/invoices:0.1.0
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: [/tmp]
+    ports:
+      - "127.0.0.1:8080:8080" # API and its reference at /api/docs/; put a TLS proxy in front
+    volumes:
+      - invoices-data:/data # SQLite database: customers, invoices with their UBL-TR XML, payments. Back it up
+      - ./config:/config:ro # invoices.yaml; mount the folder so an editor's save reaches it
+    secrets:
+      - openasy-kek # mounted at /run/secrets/openasy-kek
+    environment:
+      # The address people open Invoices at; links given to other products use it.
+      INVOICES_PUBLIC_URL: ${INVOICES_PUBLIC_URL:-http://localhost:8080}
+      INVOICES_CONFIG: /config/invoices.yaml
+      # The secrets invoices.yaml names, never written in the file itself:
+      # INVOICES_INTEGRATOR_KEY: ${INVOICES_INTEGRATOR_KEY}   # your integrator's API key
+      # INVOICES_MAIL_PASSWORD: ${INVOICES_MAIL_PASSWORD}
+      # INVOICES_CRM_TOKEN: ${INVOICES_CRM_TOKEN}   # a CRM token of the viewer role
+      # Sign in with your identity provider (OIDC), see the README:
+      # OPENASY_OIDC_ISSUER: https://login.example.com
+      # OPENASY_OIDC_CLIENT_ID: invoices
+      # OPENASY_OIDC_CLIENT_SECRET: ${OPENASY_OIDC_CLIENT_SECRET}
+
+volumes:
+  invoices-data:
+
+secrets:
+  openasy-kek:
+    file: ./openasy-kek

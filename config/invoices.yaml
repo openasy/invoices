@@ -1,0 +1,77 @@
+# Invoices' settings. This file is the only place they are changed; a change is picked up within a minute, and a file
+# with a mistake leaves the last good one in place. Customers, products, invoices and payments are kept in the database.
+time_zone: Europe/Istanbul
+currency: TRY # invoices are in it unless the customer or the invoice says otherwise
+language: tr # the PDF's and the emails' language: tr or en
+
+# You, as every invoice names you.
+seller:
+  name: Acme Yazılım A.Ş.
+  tax_id: "1234567890" # VKN, or TCKN for a sole trader
+  tax_office: Zincirlikuyu
+  address: { street: Büyükdere Cad. No:1, district: Şişli, city: İstanbul, postal_code: "34394" }
+  email: fatura@example.com
+  phone: "+90 212 000 00 00"
+  # mersis: "0123456789000015"
+  # trade_registry: "123456"
+  # iban: TR33 0006 1005 1978 6457 8413 26 # printed on the PDF and in reminders
+  # bank: Örnek Bankası
+
+# Three letters or digits each, then the year and nine digits: ABC2026000000001. Each series counts on its own and
+# starts again at 1 every year. Use the prefixes your integrator has for you.
+series:
+  e_fatura: ACM
+  e_arsiv: ACA
+
+payment_terms: 30d # the due day, unless the customer has their own
+
+# kdv_rates: [0, 1, 10, 20]
+# withholding: # KDV tevkifat codes, to add one or change a share
+#   "624": { name: Yük taşımacılığı hizmeti, share: 2/10 }
+# exemptions: # KDV exemption codes for lines with 0% (301, 302 and 351 are there already)
+#   "350": Diğerleri
+
+# Your GİB special integrator. Only integrators with an API can be connected: nilvera, or fake to try Invoices
+# without sending anything to GİB.
+integrator:
+  provider: fake
+  # provider: nilvera
+  # url: https://apitest.nilvera.com # their test system; https://api.nilvera.com when left out
+  # api_key: INVOICES_INTEGRATOR_KEY # the variable that holds it
+  profile: TEMELFATURA # or TICARIFATURA, which the buyer may refuse within eight days
+  poll_every: 5m
+
+exchange_rates:
+  rate: forex_buying # TCMB döviz alış, of the last bulletin before the invoice's day
+
+reminders:
+  before: [3d] # days before the due day
+  after: [1d, 7d, 30d] # days after it, while unpaid
+  at: "09:00"
+
+email_on_issue: true # each invoice is emailed to the customer with its PDF and XML
+
+
+# mail:
+#   host: smtp.example.com
+#   port: 587
+#   security: starttls
+#   user: fatura@example.com
+#   password: INVOICES_MAIL_PASSWORD
+#   from: Acme Fatura <fatura@example.com>
+
+# Bank accounts whose statements you import. csv names the columns of the file your bank gives.
+# bank:
+#   garanti:
+#     name: Garanti TL
+#     iban: TR33 0006 1005 1978 6457 8413 26
+#     format: csv
+#     csv: { date: Tarih, amount: Tutar, description: Açıklama, reference: Dekont No, separator: ";", date_format: DD.MM.YYYY, decimal: "," }
+#   isbank:
+#     format: mt940
+
+# crm:
+#   url: http://crm:8080
+#   token: INVOICES_CRM_TOKEN # a CRM token of the viewer role
+#   won_deals: draft # each deal won from now on becomes a draft invoice
+#   check_every: 5m
