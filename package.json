@@ -1,6 +1,6 @@
 {
   "name": "@openasy/invoices",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "OpenAsy Invoices: invoices and credit notes with KDV and tevkifat, e-Fatura and e-Arşiv through your GİB integrator, payments, reminders and recurring invoices.",
   "license": "AGPL-3.0-only",

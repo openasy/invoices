@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "OpenAsy Invoices",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Invoices and credit notes with KDV and withholding, issued as e-Fatura or e-Arşiv through the GİB integrator invoices.yaml sets, with payments, reminders, recurring invoices, bank statements and exports for the accountant. Amounts are whole numbers of minor units (kuruş for TRY). Viewers read everything; editors change everything but erasures; admins also erase.",
     "license": {
       "name": "AGPL-3.0-only",
