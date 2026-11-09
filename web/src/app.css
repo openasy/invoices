@@ -1,0 +1,77 @@
+/* The few layouts this product needs that @openasy/ui's prebuilt styles do not include. Colours stay in the library's tokens. */
+
+.inv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inv-halves,
+.inv-side,
+.inv-thirds,
+.inv-form2 {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 640px) {
+  .inv-form2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .inv-span2 {
+    grid-column: span 2;
+  }
+}
+@media (min-width: 768px) {
+  .inv-thirds {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1280px) {
+  .inv-halves {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .inv-side {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+.inv-facts {
+  grid-template-columns: 80px minmax(0, 1fr);
+  margin: 0;
+}
+
+.inv-settings-list {
+  grid-template-columns: minmax(120px, 40%) minmax(0, 1fr);
+  margin: 0;
+}
+
+.inv-code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* A line being written: the item, quantity, price, KDV, withholding or exemption, and remove on one row when there is room. */
+.inv-line {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+}
+.inv-line > :first-child,
+.inv-line-name,
+.inv-line-total {
+  grid-column: 1 / -1;
+}
+@media (min-width: 900px) {
+  .inv-line {
+    grid-template-columns: minmax(0, 2fr) 80px 160px 84px minmax(0, 1.4fr) auto;
+  }
+  .inv-line > :first-child {
+    grid-column: auto;
+  }
+}
+
+.inv-icon {
+  display: inline-flex;
+}
+.inv-icon svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}

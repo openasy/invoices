@@ -128,6 +128,46 @@
         "description": "Needs the viewer role."
       }
     },
+    "/api/v1/overview": {
+      "get": {
+        "operationId": "overview",
+        "tags": [
+          "Product"
+        ],
+        "summary": "What is owed, overdue and collected, by age, month and customer, in the file's currency",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      }
+    },
     "/api/v1/settings": {
       "get": {
         "operationId": "settings",
@@ -340,6 +380,65 @@
         ],
         "x-openasy-role": "editor",
         "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/customers/import": {
+      "post": {
+        "operationId": "importCustomers",
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Add or change customers from a CSV file, all or none",
+        "description": "The header names the fields: name, tax_id, tax_office, street, district, city, postal_code, country, email, phone, currency, payment_days, notes. A row whose tax number is a customer's already changes that customer; the others are added.\n\nNeeds the editor role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Written, or nothing written and the wrong rows named.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
       }
     },
     "/api/v1/customers/{id}": {
@@ -692,6 +791,65 @@
         "description": "Needs the editor role."
       }
     },
+    "/api/v1/catalog/import": {
+      "post": {
+        "operationId": "importCatalog",
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Add or change products and services from a CSV file, all or none",
+        "description": "The header names the fields: code, name, unit, unit_price (2400 or 2.400,50), currency, kdv_rate, withholding, exemption, stock. A row whose code is a product's already changes it; the others are added.\n\nNeeds the editor role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Written, or nothing written and the wrong rows named.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "editor"
+      }
+    },
     "/api/v1/catalog/{id}": {
       "patch": {
         "operationId": "updateCatalogItem",
@@ -964,6 +1122,65 @@
           }
         ],
         "x-openasy-role": "editor"
+      }
+    },
+    "/api/v1/invoices/preview": {
+      "post": {
+        "operationId": "previewInvoice",
+        "tags": [
+          "Invoices"
+        ],
+        "summary": "A draft's totals, type, channel and next number, as issuing would write them",
+        "description": "The lines are read and rounded as a saved draft's are (each line once, half up; the totals are sums of the lines). Nothing is saved, and the number is only what issuing now would give. A line without a name yet is counted.\n\nNeeds the viewer role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preview"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer"
       }
     },
     "/api/v1/invoices/{id}": {
@@ -1652,6 +1869,44 @@
       }
     },
     "/api/v1/bank/statements": {
+      "get": {
+        "operationId": "listStatements",
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Statements imported, the latest first",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
+      },
       "post": {
         "operationId": "importStatement",
         "tags": [
@@ -2093,6 +2348,69 @@
         ],
         "x-openasy-role": "editor",
         "description": "Needs the editor role."
+      }
+    },
+    "/api/v1/exports/counts": {
+      "get": {
+        "operationId": "exportCounts",
+        "tags": [
+          "Exports"
+        ],
+        "summary": "How many invoices, credit notes, payments and XML files the exports of a period hold",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "First day, YYYY-MM-DD; the first of this month when left out.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Last day; today when left out.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportCounts"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          },
+          {
+            "adminToken": []
+          }
+        ],
+        "x-openasy-role": "viewer",
+        "description": "Needs the viewer role."
       }
     },
     "/api/v1/exports/invoices.csv": {
@@ -2973,6 +3291,653 @@
           },
           "openBillableItems": {
             "type": "integer"
+          }
+        }
+      },
+      "Overview": {
+        "type": "object",
+        "required": [
+          "currency",
+          "today",
+          "owed",
+          "overdue",
+          "collected",
+          "daysToPay",
+          "waiting",
+          "unmatchedBankLines",
+          "months",
+          "ages",
+          "customers"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "The file's currency; invoices in another count at the rate they were issued at."
+          },
+          "today": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "owed": {
+            "type": "object",
+            "required": [
+              "amount",
+              "invoices"
+            ],
+            "properties": {
+              "amount": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "invoices": {
+                "type": "integer"
+              }
+            }
+          },
+          "overdue": {
+            "type": "object",
+            "required": [
+              "amount",
+              "invoices",
+              "oldestDays"
+            ],
+            "properties": {
+              "amount": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "invoices": {
+                "type": "integer"
+              },
+              "oldestDays": {
+                "type": "integer"
+              }
+            }
+          },
+          "collected": {
+            "type": "object",
+            "required": [
+              "month",
+              "amount",
+              "payments",
+              "fromBank"
+            ],
+            "properties": {
+              "month": {
+                "type": "string",
+                "examples": [
+                  "2026-11"
+                ]
+              },
+              "amount": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "payments": {
+                "type": "integer"
+              },
+              "fromBank": {
+                "type": "integer"
+              }
+            }
+          },
+          "daysToPay": {
+            "type": "object",
+            "required": [
+              "last90",
+              "previous90"
+            ],
+            "properties": {
+              "last90": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "description": "Average days from issue to paid in full, of invoices paid in the last 90 days."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "previous90": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "description": "The same for the 90 days before."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "waiting": {
+            "type": "object",
+            "required": [
+              "drafts",
+              "refused"
+            ],
+            "properties": {
+              "drafts": {
+                "type": "integer"
+              },
+              "refused": {
+                "type": "integer",
+                "description": "Refused by the integrator, or failed at GİB."
+              }
+            }
+          },
+          "unmatchedBankLines": {
+            "type": "integer"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "month",
+                "paid",
+                "owed"
+              ],
+              "properties": {
+                "month": {
+                  "type": "string"
+                },
+                "paid": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "owed": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                }
+              }
+            },
+            "description": "The last six months by issue month, without KDV: the part paid and the part still owed."
+          },
+          "ages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "age",
+                "amount"
+              ],
+              "properties": {
+                "age": {
+                  "type": "string",
+                  "enum": [
+                    "current",
+                    "1-30",
+                    "31-60",
+                    "60+"
+                  ]
+                },
+                "amount": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                }
+              }
+            }
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "customer",
+                "invoices",
+                "owed",
+                "overdue",
+                "oldest"
+              ],
+              "properties": {
+                "customer": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "invoices": {
+                  "type": "integer"
+                },
+                "owed": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "overdue": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "oldest": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "number",
+                        "daysOverdue"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "number": {
+                          "type": "string"
+                        },
+                        "daysOverdue": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "PreviewRequest": {
+        "type": "object",
+        "required": [
+          "lines"
+        ],
+        "properties": {
+          "customer": {
+            "description": "A customer id, or { id }, { taxId }, { email } or { crmCompany }; the channel follows their e-Fatura check."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LineInput"
+            }
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invoice",
+              "credit_note"
+            ]
+          },
+          "original": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "For a credit note: the invoice it corrects, whose channel it takes."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Preview": {
+        "type": "object",
+        "required": [
+          "currency",
+          "lines",
+          "totals",
+          "type",
+          "typeError",
+          "channel",
+          "channelKnown",
+          "alias",
+          "profile",
+          "next"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "net",
+                "kdv",
+                "withheld"
+              ],
+              "properties": {
+                "net": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "kdv": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                },
+                "withheld": {
+                  "type": "integer",
+                  "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                }
+              }
+            }
+          },
+          "totals": {
+            "type": "object",
+            "required": [
+              "gross",
+              "discount",
+              "net",
+              "kdv",
+              "withheld",
+              "total",
+              "payable",
+              "kdvBreakdown",
+              "withholdingBreakdown"
+            ],
+            "properties": {
+              "gross": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "discount": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "net": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "kdv": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "withheld": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "total": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "payable": {
+                "type": "integer",
+                "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+              },
+              "kdvBreakdown": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "rate",
+                    "exemption",
+                    "base",
+                    "amount"
+                  ],
+                  "properties": {
+                    "rate": {
+                      "type": "integer"
+                    },
+                    "exemption": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "base": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    }
+                  }
+                }
+              },
+              "withholdingBreakdown": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "share",
+                    "base",
+                    "amount"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "share": {
+                      "type": "string"
+                    },
+                    "base": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "SATIS",
+                  "TEVKIFAT",
+                  "ISTISNA",
+                  "IADE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "typeError": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Why these lines cannot be one invoice, such as withholding and exempt lines together."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "e-fatura",
+              "e-arsiv"
+            ]
+          },
+          "channelKnown": {
+            "type": "boolean",
+            "description": "false until the customer is checked: e-Arşiv unless issuing finds them on GİB's list."
+          },
+          "alias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "type": "string",
+            "enum": [
+              "TEMELFATURA",
+              "TICARIFATURA",
+              "EARSIVFATURA"
+            ]
+          },
+          "next": {
+            "type": "string",
+            "description": "The number it would take if issued now; issuing gives it for real."
+          }
+        }
+      },
+      "ExportCounts": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "invoices",
+          "creditNotes",
+          "payments",
+          "xml"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-11-09"
+            ]
+          },
+          "invoices": {
+            "type": "integer"
+          },
+          "creditNotes": {
+            "type": "integer"
+          },
+          "payments": {
+            "type": "integer"
+          },
+          "xml": {
+            "type": "integer"
+          }
+        }
+      },
+      "StatementList": {
+        "type": "object",
+        "required": [
+          "statements"
+        ],
+        "properties": {
+          "statements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "account",
+                "filename",
+                "importedAt",
+                "importedBy",
+                "lines"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "account": {
+                  "type": "string"
+                },
+                "filename": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "importedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "importedBy": {
+                  "type": "string"
+                },
+                "lines": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ImportRequest": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "The CSV file's text: a header row naming the fields, ; or , between them."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ImportResult": {
+        "type": "object",
+        "required": [
+          "added",
+          "updated",
+          "errors"
+        ],
+        "properties": {
+          "added": {
+            "type": "integer"
+          },
+          "updated": {
+            "type": "integer"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "row",
+                "message"
+              ],
+              "properties": {
+                "row": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Rows that are wrong, by their line in the file. When there are any, nothing is written."
           }
         }
       },
@@ -4770,7 +5735,8 @@
               "payments",
               "creditNotes",
               "reminders",
-              "events"
+              "events",
+              "reminderPlan"
             ],
             "properties": {
               "payments": {
@@ -4899,6 +5865,49 @@
                     }
                   }
                 }
+              },
+              "reminderPlan": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "days",
+                    "on",
+                    "state"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "before",
+                        "after"
+                      ]
+                    },
+                    "days": {
+                      "type": "integer"
+                    },
+                    "on": {
+                      "type": "string",
+                      "format": "date",
+                      "examples": [
+                        "2026-11-09"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "failed",
+                        "planned",
+                        "passed",
+                        "stopped"
+                      ],
+                      "description": "planned: still to go; passed: its day went by without one (a later one was due); stopped: the invoice is paid."
+                    }
+                  }
+                },
+                "description": "The reminders an owed invoice gets by the file's days, at reminders.at; empty for anything else."
               }
             }
           }
@@ -5446,6 +6455,7 @@
           "made",
           "lastInvoice",
           "lastError",
+          "totals",
           "createdAt",
           "createdBy"
         ],
@@ -5546,6 +6556,41 @@
             "anyOf": [
               {
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totals": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "net",
+                  "kdv",
+                  "withheld",
+                  "payable"
+                ],
+                "properties": {
+                  "net": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  },
+                  "kdv": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  },
+                  "withheld": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  },
+                  "payable": {
+                    "type": "integer",
+                    "description": "Minor units of the currency: kuruş for TRY. 4500050 is 45.000,50 TL."
+                  }
+                },
+                "description": "What each invoice comes to under the applied file; null when its lines no longer pass it."
               },
               {
                 "type": "null"

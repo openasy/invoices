@@ -79,7 +79,7 @@ describe("openapi.json", () => {
     expect(served.paths["/api/v1/auth/login"]).toBeDefined();
   });
 
-  it("serves the API reference at /api/docs/, and no screens", async () => {
+  it("serves the API reference at /api/docs/, and no screens when run headless", async () => {
     expect((await fetch(`${base}/api/docs`, { redirect: "manual" })).headers.get("location")).toBe("/api/docs/");
     expect((await fetch(`${base}/api/docs/`)).headers.get("content-type")).toContain("text/html");
     expect((await fetch(`${base}/invoices`)).status).toBe(404);
@@ -91,7 +91,7 @@ describe("responses match openapi.json", () => {
 
   it("product and health", async () => {
     await call("GET", "/api/v1/version");
-    for (const p of ["/api/v1/products", "/api/v1/summary", "/api/v1/settings"]) {
+    for (const p of ["/api/v1/products", "/api/v1/summary", "/api/v1/overview", "/api/v1/settings"]) {
       await call("GET", p, admin());
       await call("GET", p, {});
     }
@@ -135,6 +135,11 @@ describe("responses match openapi.json", () => {
     await call("POST", "/api/v1/customers/{id}/check", admin(), `/api/v1/customers/${noTax}/check`);
     await call("DELETE", "/api/v1/customers/{id}", admin(), `/api/v1/customers/${noTax}`);
     await call("DELETE", "/api/v1/customers/{id}", admin(), `/api/v1/customers/${noTax}`);
+    await call("POST", "/api/v1/customers/import", admin({ content: "name;tax_id;tax_office;district;city\nPolat Gıda;7310098821;Nilüfer;Nilüfer;Bursa\n" }));
+    await call("POST", "/api/v1/customers/import", admin({ content: "name;tax_id;city\nBozuk;123;Bursa\n" }));
+    await call("POST", "/api/v1/customers/import", admin({ content: "" }));
+    await call("POST", "/api/v1/customers/import", admin("{"));
+    await call("POST", "/api/v1/customers/import", admin({ content: "x".repeat(5 * 1024 * 1024) }));
 
     ids.item = (
       await call("POST", "/api/v1/catalog", admin({ code: "LIS-12", name: "Lisans, 12 ay", unitPrice: 900050, unit: "C62", kdvRate: 20, stock: true }))
@@ -142,6 +147,11 @@ describe("responses match openapi.json", () => {
     await call("POST", "/api/v1/catalog", admin({ code: "LIS-12", name: "Again", unitPrice: 1 }));
     await call("POST", "/api/v1/catalog", admin({ code: "X", name: "x", unitPrice: 1, kdvRate: 0 }));
     await call("POST", "/api/v1/catalog", admin("{"));
+    await call("POST", "/api/v1/catalog/import", admin({ content: "code;name;unit_price\nCSV-1;Bir;10,00\n" }));
+    await call("POST", "/api/v1/catalog/import", admin({ content: "code;name;unit_price\nCSV-2;İki;abc\n" }));
+    await call("POST", "/api/v1/catalog/import", admin({ nope: 1 }));
+    await call("POST", "/api/v1/catalog/import", admin("{"));
+    await call("POST", "/api/v1/catalog/import", admin({ content: "x".repeat(5 * 1024 * 1024) }));
     await call("GET", "/api/v1/catalog", admin(), "/api/v1/catalog?q=lis");
     await call("PATCH", "/api/v1/catalog/{id}", admin({ unitPrice: 950000 }), `/api/v1/catalog/${ids.item}`);
     await call("PATCH", "/api/v1/catalog/{id}", admin({ unit: "BOX" }), `/api/v1/catalog/${ids.item}`);
@@ -161,7 +171,11 @@ describe("responses match openapi.json", () => {
         { name: "Kurulum", unitPrice: 250000, kdvRate: 10 },
       ],
     };
+    const preview = (await call("POST", "/api/v1/invoices/preview", admin(draft))).body;
     ids.invoice = (await call("POST", "/api/v1/invoices", admin(draft))).body.id;
+    await call("POST", "/api/v1/invoices/preview", admin({ customer: ids.customer, lines: [{ name: "x", unitPrice: 1, kdvRate: 0 }] }));
+    await call("POST", "/api/v1/invoices/preview", admin({ customer: "missing", lines: [] }));
+    await call("POST", "/api/v1/invoices/preview", admin("{"));
     await call("POST", "/api/v1/invoices", admin({ customer: ids.customer, lines: [] }));
     await call("POST", "/api/v1/invoices", admin({ customer: "missing", lines: [{ name: "x", unitPrice: 1 }] }));
     await call("POST", "/api/v1/invoices", admin("{"));
@@ -177,6 +191,7 @@ describe("responses match openapi.json", () => {
     await call("POST", "/api/v1/invoices/{id}/issue", admin("{"), `/api/v1/invoices/${ids.invoice}/issue`);
     const issued = (await call("POST", "/api/v1/invoices/{id}/issue", admin(), `/api/v1/invoices/${ids.invoice}/issue`)).body;
     expect(issued.number).toBe("ACM2026000000001");
+    expect(issued.totals).toEqual(preview.totals);
     await call("POST", "/api/v1/invoices/{id}/issue", admin(), `/api/v1/invoices/${ids.invoice}/issue`);
     await call("PATCH", "/api/v1/invoices/{id}", admin({ notes: "x" }), `/api/v1/invoices/${ids.invoice}`);
     await call("DELETE", "/api/v1/invoices/{id}", admin(), `/api/v1/invoices/${ids.invoice}`);
@@ -242,6 +257,7 @@ describe("responses match openapi.json", () => {
     await call("POST", "/api/v1/bank/statements", admin({ account: "nope", content }));
     await call("POST", "/api/v1/bank/statements", admin("{"));
     await call("POST", "/api/v1/bank/statements", admin({ account: "garanti", content: "x".repeat(9 * 1024 * 1024) }));
+    await call("GET", "/api/v1/bank/statements", admin());
     const lines = (await call("GET", "/api/v1/bank/lines", admin())).body.lines;
     await call("GET", "/api/v1/bank/lines", admin(), "/api/v1/bank/lines?state=all");
     await call("GET", "/api/v1/bank/lines", admin(), "/api/v1/bank/lines?state=nope");
@@ -272,6 +288,8 @@ describe("responses match openapi.json", () => {
   });
 
   it("exports", async () => {
+    await call("GET", "/api/v1/exports/counts", admin(), "/api/v1/exports/counts?from=2026-11-01&to=2026-11-30");
+    await call("GET", "/api/v1/exports/counts", admin(), "/api/v1/exports/counts?from=nope");
     for (const p of ["/api/v1/exports/invoices.csv", "/api/v1/exports/payments.csv", "/api/v1/exports/ubl.zip"]) {
       await call("GET", p, admin(), `${p}?from=2026-11-01&to=2026-11-30`);
       await call("GET", p, admin(), `${p}?from=nope`);

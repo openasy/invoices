@@ -12,7 +12,7 @@
 //   before it reached GİB may be fixed and sent again under its number.
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import { fingerprint, parseStatement, StatementError } from "./bank.ts";
+import { csvRows, fingerprint, parseAmount, parseStatement, StatementError } from "./bank.ts";
 import { configWarnings, isDefaultSeller, type Config, type ConfigFileState } from "./config.ts";
 import { csv, decimal, zip } from "./exports.ts";
 import { IntegratorError, type Channel, type IntegratorApi } from "./integrator.ts";
@@ -44,7 +44,7 @@ import {
   type Actor,
 } from "./store.ts";
 import { rateFor, RateError, tcmb, type Bulletin, type RateSource } from "./tcmb.ts";
-import { checkLineTax, invoiceTotals, taxIdKind, toTry, typeCode, type LineInput } from "./tax.ts";
+import { checkLineTax, invoiceTotals, mulDiv, taxIdKind, toTry, typeCode, type LineInput } from "./tax.ts";
 import { amt, qty, rate4, UNITS, ublXml, validateUbl, type InvoiceDocument, type Party, type Profile } from "./ubl.ts";
 
 type Row = Record<string, SQLInputValue>;
@@ -733,6 +733,7 @@ export function createInvoices(db: DatabaseSync, opts: InvoicesOptions) {
       events: s
         .q<{ at: string; by_name: string; what: string; detail: string | null }>("SELECT * FROM invoice_events WHERE invoice_id = ? ORDER BY id", r.id)
         .map((e) => ({ at: e.at, by: e.by_name, what: e.what, detail: e.detail })),
+      reminderPlan: reminderPlan(r),
     };
   }
 
@@ -1637,6 +1638,18 @@ export function createInvoices(db: DatabaseSync, opts: InvoicesOptions) {
 
   // ---- Recurring invoices ----
 
+  /** What each invoice of a recurring one comes to under the applied file; null when its lines no longer pass it. */
+  function recurringTotals(t: Record<string, unknown>) {
+    try {
+      const lines = (JSON.parse(t.lines as string) as unknown[]).map((l, i) => readLine(l, `lines[${i}]`, t.currency as string));
+      const x = invoiceTotals(lines.map(lineInput));
+      return { net: x.net, kdv: x.kdv, withheld: x.withheld, payable: x.payable };
+    } catch (err) {
+      if (err instanceof AppError) return null;
+      throw err;
+    }
+  }
+
   const recurringOut = (t: Record<string, unknown>) => ({
     id: t.id,
     name: t.name,
@@ -1654,6 +1667,7 @@ export function createInvoices(db: DatabaseSync, opts: InvoicesOptions) {
     made: t.made,
     lastInvoice: t.last_invoice_id,
     lastError: t.last_error,
+    totals: recurringTotals(t),
     createdAt: t.created_at,
     createdBy: t.created_by,
   });
@@ -2189,6 +2203,392 @@ export function createInvoices(db: DatabaseSync, opts: InvoicesOptions) {
     };
   }
 
+  // ---- What the screens ask for: a draft's totals before it is saved, the overview, imports ----
+
+  /** The channel an invoice to this customer goes as, as far as is known before issuing asks the integrator again. */
+  function channelOf(c: CustomerRow): { channel: Channel; known: boolean; alias: string | null } {
+    if (!c.einvoice_checked_at) return { channel: "e-arsiv", known: false, alias: null };
+    const aliases = JSON.parse(c.einvoice_aliases ?? "[]") as string[];
+    return { channel: aliases.length ? "e-fatura" : "e-arsiv", known: true, alias: aliases[0] ?? null };
+  }
+
+  /** The number the next invoice of a series would take today; issuing gives it for real, in its transaction. */
+  function nextNumber(channel: Channel) {
+    const c = config();
+    const series = channel === "e-fatura" ? c.series.eFatura : c.series.eArsiv;
+    const year = Number(today().slice(0, 4));
+    const last = s.one<{ last: number }>("SELECT last FROM number_series WHERE series = ? AND year = ?", series, year)?.last ?? 0;
+    return `${series}${year}${String(last + 1).padStart(9, "0")}`;
+  }
+
+  /**
+   * A draft's totals as issuing would write them: the same lines, the same rounding (invoiceTotals), the same type.
+   * Nothing is saved. A line without a name yet is counted as one, so totals follow what is typed.
+   */
+  function preview(v: unknown) {
+    const b = body(v, ["customer", "currency", "lines", "kind", "original"]);
+    const c = config();
+    const customer = b.customer === undefined || b.customer === null ? null : findCustomer(b.customer, "customer");
+    const original = b.original === undefined || b.original === null ? null : invoiceRow(text(b.original, "original", 100));
+    const credit = b.kind === "credit_note" || !!original;
+    if (b.kind !== undefined && b.kind !== "invoice" && b.kind !== "credit_note") throw bad("kind is invoice or credit_note.");
+    const currency = b.currency === undefined ? (original?.currency ?? customer?.currency ?? c.currency) : String(b.currency);
+    if (!/^[A-Z]{3}$/.test(currency)) throw bad("currency is a three-letter code, such as TRY, EUR or USD.");
+    if (!Array.isArray(b.lines) || b.lines.length > 500) throw bad("lines is a list of up to 500 lines.");
+    const lines = b.lines.map((l, i) => {
+      const named =
+        isObj(l) && (l.name === undefined || l.name === null || l.name === "") && (l.product === undefined || l.product === null) ? { ...l, name: "-" } : l;
+      return readLine(named, `lines[${i}]`, currency);
+    });
+    const inputs = lines.map(lineInput);
+    const t = invoiceTotals(inputs);
+    const ch = original?.channel
+      ? { channel: original.channel, known: true, alias: original.alias }
+      : customer
+        ? channelOf(customer)
+        : { channel: "e-arsiv" as Channel, known: false, alias: null };
+    const profile: Profile = ch.channel === "e-arsiv" ? "EARSIVFATURA" : credit ? "TEMELFATURA" : (c.integrator?.profile ?? "TEMELFATURA");
+    let type: string | null = null;
+    let typeError: string | null = null;
+    try {
+      type = lines.length ? typeCode(inputs, credit, c.tax) : null;
+    } catch (err) {
+      if (!(err instanceof AppError)) throw err;
+      typeError = err.message;
+    }
+    return {
+      currency,
+      lines: t.lines.map((x) => ({ net: x.net, kdv: x.kdv, withheld: x.withheld })),
+      totals: {
+        gross: t.gross,
+        discount: t.discount,
+        net: t.net,
+        kdv: t.kdv,
+        withheld: t.withheld,
+        total: t.total,
+        payable: t.payable,
+        kdvBreakdown: t.kdvBreakdown,
+        withholdingBreakdown: t.withholdingBreakdown.map((w) => ({ code: w.code, share: `${w.tenths}/10`, base: w.base, amount: w.amount })),
+      },
+      type,
+      typeError,
+      channel: ch.channel,
+      channelKnown: ch.known,
+      alias: ch.alias,
+      profile,
+      next: original?.number && EDITABLE.includes(original.status) ? original.number : nextNumber(ch.channel),
+    };
+  }
+
+  /** The reminders an owed invoice gets by the file's days: sent, planned, or passed without one. */
+  function reminderPlan(r: InvoiceRow) {
+    const c = config();
+    if (r.kind !== "invoice" || !OWED.includes(r.status) || !r.due_date) return [];
+    const sent = s.q<{ kind: string; days: number; error: string | null }>("SELECT kind, days, error FROM reminders WHERE invoice_id = ?", r.id);
+    const t0 = today();
+    const open = balanceOf(r.id) > 0;
+    const plan = [
+      ...c.reminders.before.map((d) => ({ kind: "before" as const, days: d, on: addDays(r.due_date!, -d) })),
+      ...c.reminders.after.map((d) => ({ kind: "after" as const, days: d, on: addDays(r.due_date!, d) })),
+    ].sort((a, b) => a.on.localeCompare(b.on));
+    return plan.map((p) => {
+      const x = sent.find((y) => y.kind === p.kind && y.days === p.days);
+      const state = x ? (x.error ? "failed" : "sent") : p.on < t0 ? "passed" : open ? "planned" : "stopped";
+      return { ...p, state };
+    });
+  }
+
+  /** What the overview shows, in the file's currency: invoices in another currency count at the rate they were issued at. */
+  function overview() {
+    const c = config();
+    const t0 = today();
+    const inHome = (r: InvoiceRow, n: number) => (r.currency === c.currency ? n : toTry(n, r.rate));
+    const owedRows = s
+      .q<InvoiceRow>(`SELECT * FROM invoices WHERE kind = 'invoice' AND status IN (${OWED_SQL}) ORDER BY due_date`)
+      .map((r) => ({ r, balance: balanceOf(r.id) }))
+      .filter((x) => x.balance > 0);
+    const late = (r: InvoiceRow) => (r.due_date && r.due_date < t0 ? daysBetween(r.due_date, t0) : 0);
+    const ages = { current: 0, "1-30": 0, "31-60": 0, "60+": 0 };
+    const customers = new Map<
+      string,
+      {
+        customer: { id: string; name: string };
+        invoices: number;
+        owed: number;
+        overdue: number;
+        oldest: { id: string; number: string; daysOverdue: number } | null;
+      }
+    >();
+    let owed = 0;
+    let overdue = 0;
+    let overdueInvoices = 0;
+    let oldest = 0;
+    for (const { r, balance } of owedRows) {
+      const n = inHome(r, balance);
+      const d = late(r);
+      owed += n;
+      if (d > 0) ((overdue += n), overdueInvoices++, (oldest = Math.max(oldest, d)));
+      ages[d <= 0 ? "current" : d <= 30 ? "1-30" : d <= 60 ? "31-60" : "60+"] += n;
+      const name = (JSON.parse(r.buyer ?? "{}") as Partial<Party>).name ?? customerRow(r.customer_id).name;
+      const k = customers.get(r.customer_id) ?? { customer: { id: r.customer_id, name }, invoices: 0, owed: 0, overdue: 0, oldest: null };
+      k.invoices++;
+      k.owed += n;
+      if (d > 0) {
+        k.overdue += n;
+        if (!k.oldest || d > k.oldest.daysOverdue) k.oldest = { id: r.id, number: r.number!, daysOverdue: d };
+      }
+      customers.set(r.customer_id, k);
+    }
+    // Collected this month: payments by their day, with those that came from a bank statement.
+    const month = t0.slice(0, 7);
+    const pays = s.q<{ amount: number; bank_line_id: string | null; currency: string; rate: number | null }>(
+      "SELECT p.amount, p.bank_line_id, i.currency, i.rate FROM payments p JOIN invoices i ON i.id = p.invoice_id WHERE p.date >= ? AND p.date <= ?",
+      `${month}-01`,
+      t0,
+    );
+    const collected = {
+      month,
+      amount: pays.reduce((n, p) => n + (p.currency === c.currency ? p.amount : toTry(p.amount, p.rate)), 0),
+      payments: pays.length,
+      fromBank: pays.filter((p) => p.bank_line_id).length,
+    };
+    // Days from issue to paid in full, for invoices paid in the last 90 days and the 90 before.
+    const avg = (from: string, to: string) => {
+      const rows = s.q<{ issue_date: string; paid_at: string }>(
+        "SELECT issue_date, paid_at FROM invoices WHERE kind = 'invoice' AND paid_at IS NOT NULL AND issue_date IS NOT NULL AND paid_at > ? AND paid_at <= ?",
+        from,
+        to,
+      );
+      return rows.length ? Math.round(rows.reduce((n, x) => n + Math.max(0, daysBetween(x.issue_date, x.paid_at)), 0) / rows.length) : null;
+    };
+    // Invoiced by issue month, without KDV, for the last six months: the part paid and the part still owed.
+    const months: Array<{ month: string; paid: number; owed: number }> = [];
+    for (let i = 5; i >= 0; i--) {
+      const m = addMonths(`${month}-01`, -i, 1).slice(0, 7);
+      let paid = 0;
+      let open = 0;
+      for (const r of s.q<InvoiceRow>(
+        `SELECT * FROM invoices WHERE kind = 'invoice' AND status IN (${OWED_SQL}) AND issue_date >= ? AND issue_date <= ?`,
+        `${m}-01`,
+        `${m}-31`,
+      )) {
+        const net = inHome(r, r.net);
+        const left = r.payable > 0 ? Math.max(0, mulDiv(net, balanceOf(r.id), r.payable)) : 0;
+        open += left;
+        paid += net - left;
+      }
+      months.push({ month: m, paid, owed: open });
+    }
+    const n = (sql: string) => s.one<{ n: number }>(sql)!.n;
+    return {
+      currency: c.currency,
+      today: t0,
+      owed: { amount: owed, invoices: owedRows.length },
+      overdue: { amount: overdue, invoices: overdueInvoices, oldestDays: oldest },
+      collected,
+      daysToPay: { last90: avg(addDays(t0, -90), t0), previous90: avg(addDays(t0, -180), addDays(t0, -90)) },
+      waiting: {
+        drafts: n("SELECT COUNT(*) AS n FROM invoices WHERE status = 'draft'"),
+        refused: n("SELECT COUNT(*) AS n FROM invoices WHERE status IN ('refused', 'failed')"),
+      },
+      unmatchedBankLines: n("SELECT COUNT(*) AS n FROM bank_lines WHERE state = 'unmatched'"),
+      months,
+      ages: Object.entries(ages).map(([age, amount]) => ({ age, amount })),
+      customers: [...customers.values()].sort((a, b) => b.owed - a.owed),
+    };
+  }
+
+  /** How many of each the exports of a period hold. */
+  function exportCounts(p: URLSearchParams) {
+    const { from, to } = range(p);
+    const n = (sql: string) => s.one<{ n: number }>(sql, from, to)!.n;
+    return {
+      from,
+      to,
+      invoices: n("SELECT COUNT(*) AS n FROM invoices WHERE number IS NOT NULL AND kind = 'invoice' AND issue_date BETWEEN ? AND ?"),
+      creditNotes: n("SELECT COUNT(*) AS n FROM invoices WHERE number IS NOT NULL AND kind = 'credit_note' AND issue_date BETWEEN ? AND ?"),
+      payments: n("SELECT COUNT(*) AS n FROM payments WHERE date BETWEEN ? AND ?"),
+      xml: n("SELECT COUNT(*) AS n FROM invoices WHERE xml IS NOT NULL AND status NOT IN ('refused', 'failed') AND issue_date BETWEEN ? AND ?"),
+    };
+  }
+
+  function listStatements() {
+    return s
+      .q<{ id: string; account: string; filename: string | null; imported_at: string; imported_by: string; lines: number }>(
+        "SELECT st.*, (SELECT COUNT(*) FROM bank_lines l WHERE l.statement_id = st.id) AS lines FROM bank_statements st ORDER BY imported_at DESC LIMIT 100",
+      )
+      .map((x) => ({ id: x.id, account: x.account, filename: x.filename, importedAt: x.imported_at, importedBy: x.imported_by, lines: x.lines }));
+  }
+
+  /** The rows of a CSV file people make by hand or save from a spreadsheet: the header names the fields; ; or , between them. */
+  function importRows(v: unknown) {
+    const b = body(v, ["content"]);
+    if (typeof b.content !== "string" || !b.content.trim()) throw bad("content is the CSV file's text, with a header row.");
+    const first = b.content.replace(/^﻿/, "").split(/\r?\n/, 1)[0]!;
+    const sep = (first.match(/;/g)?.length ?? 0) >= (first.match(/,/g)?.length ?? 0) ? ";" : ",";
+    const rows = csvRows(b.content, sep);
+    if (rows.length < 2) throw bad("The file has a header row and at least one row under it.");
+    if (rows.length > 5001) throw bad("The file has at most 5000 rows.");
+    const key = (h: string) =>
+      h
+        .trim()
+        .toLowerCase()
+        .replace(/[\s_-]+/g, "");
+    const header = rows[0]!.map(key);
+    return rows.slice(1).map((r, i) => ({
+      row: i + 2,
+      get: (...names: string[]) => {
+        for (const n of names) {
+          const at = header.indexOf(key(n));
+          if (at >= 0 && r[at]?.trim()) return r[at]!.trim();
+        }
+        return undefined;
+      },
+    }));
+  }
+
+  /** "2400", "2.400,50" or "2400.50" as minor units. */
+  const priceOf = (raw: string | undefined, field: string) => {
+    if (raw === undefined) return undefined;
+    const v = parseAmount(raw, /,\d{1,2}$/.test(raw.trim()) ? "," : ".");
+    if (v === null || v < 0) throw bad(`${field} is an amount, such as 2400 or 2.400,50.`);
+    return v;
+  };
+
+  /**
+   * Customers from a CSV file, all or none: a row whose tax number is a customer's already changes that customer, the
+   * others are added. When a row is wrong nothing is written and every wrong row is named.
+   */
+  function importCustomers(_who: Actor, v: unknown) {
+    const rows = importRows(v);
+    const errors: Array<{ row: number; message: string }> = [];
+    const result = { added: 0, updated: 0, errors };
+    const plan: Array<{ id: string | null; f: Row }> = [];
+    const seen = new Set<string>();
+    for (const r of rows) {
+      try {
+        const days = r.get("paymentDays", "payment_days", "terms");
+        const input = {
+          name: r.get("name"),
+          taxId: r.get("taxId", "tax_id", "vkn", "tckn") ?? null,
+          taxOffice: r.get("taxOffice", "tax_office") ?? null,
+          address: {
+            street: r.get("street", "address") ?? null,
+            district: r.get("district") ?? null,
+            city: r.get("city"),
+            postalCode: r.get("postalCode", "postal_code") ?? null,
+            country: r.get("country") ?? null,
+          },
+          email: r.get("email") ?? null,
+          phone: r.get("phone") ?? null,
+          currency: r.get("currency") ?? null,
+          ...(days !== undefined && { paymentDays: /^\d+d?$/.test(days) ? Number(days.replace("d", "")) : days }),
+          notes: r.get("notes") ?? null,
+        };
+        const f = readCustomer(input, false);
+        const tax = f.tax_id as string;
+        if (tax && tax !== "11111111111") {
+          if (seen.has(tax)) throw bad(`the tax number ${tax} is on an earlier row too.`);
+          seen.add(tax);
+        }
+        const had = tax && tax !== "11111111111" ? s.one<{ id: string }>("SELECT id FROM customers WHERE tax_id = ?", tax) : undefined;
+        plan.push({ id: had?.id ?? null, f });
+      } catch (err) {
+        if (!(err instanceof AppError)) throw err;
+        errors.push({ row: r.row, message: err.message });
+      }
+    }
+    if (errors.length) return result;
+    s.tx(() => {
+      for (const p of plan) {
+        if (p.id) {
+          s.run(
+            `UPDATE customers SET ${Object.keys(p.f)
+              .map((k) => `${k} = ?`)
+              .join(", ")}, updated_at = ? WHERE id = ?`,
+            ...Object.values(p.f),
+            s.iso(),
+            p.id,
+          );
+          result.updated++;
+        } else {
+          const now = s.iso();
+          const cols = { id: randomUUID(), ...p.f, created_at: now, updated_at: now };
+          s.run(
+            `INSERT INTO customers (${Object.keys(cols).join(", ")}) VALUES (${Object.keys(cols)
+              .map(() => "?")
+              .join(", ")})`,
+            ...Object.values(cols),
+          );
+          result.added++;
+        }
+      }
+    });
+    return result;
+  }
+
+  /** Products and services from a CSV file, all or none: a row whose code is a product's already changes it. */
+  function importProducts(_who: Actor, v: unknown) {
+    const rows = importRows(v);
+    const errors: Array<{ row: number; message: string }> = [];
+    const result = { added: 0, updated: 0, errors };
+    const plan: Array<{ id: string | null; f: Row }> = [];
+    const seen = new Set<string>();
+    for (const r of rows) {
+      try {
+        const kdv = r.get("kdvRate", "kdv_rate", "kdv", "vat");
+        const stock = r.get("stock");
+        const input = {
+          code: r.get("code"),
+          name: r.get("name"),
+          unit: r.get("unit") ?? "C62",
+          unitPrice: priceOf(r.get("unitPrice", "unit_price", "price"), "unit_price"),
+          currency: r.get("currency"),
+          ...(kdv !== undefined && { kdvRate: Number(kdv.replace("%", "")) }),
+          withholding: r.get("withholding", "tevkifat") ?? null,
+          exemption: r.get("exemption", "istisna") ?? null,
+          ...(stock !== undefined && { stock: ["true", "yes", "1", "evet"].includes(stock.toLowerCase()) }),
+        };
+        const code = typeof input.code === "string" ? input.code : "";
+        const had = code ? s.one<ProductRow>("SELECT * FROM products WHERE code = ?", code) : undefined;
+        const f = readProduct(input, false, had);
+        if (seen.has(f.code as string)) throw bad(`the code ${String(f.code)} is on an earlier row too.`);
+        seen.add(f.code as string);
+        plan.push({ id: had?.id ?? null, f: had ? { ...f, active: 1 } : f });
+      } catch (err) {
+        if (!(err instanceof AppError)) throw err;
+        errors.push({ row: r.row, message: err.message });
+      }
+    }
+    if (errors.length) return result;
+    s.tx(() => {
+      for (const p of plan) {
+        if (p.id) {
+          s.run(
+            `UPDATE products SET ${Object.keys(p.f)
+              .map((k) => `${k} = ?`)
+              .join(", ")}, updated_at = ? WHERE id = ?`,
+            ...Object.values(p.f),
+            s.iso(),
+            p.id,
+          );
+          result.updated++;
+        } else {
+          const now = s.iso();
+          const cols = { id: randomUUID(), ...p.f, created_at: now, updated_at: now };
+          s.run(
+            `INSERT INTO products (${Object.keys(cols).join(", ")}) VALUES (${Object.keys(cols)
+              .map(() => "?")
+              .join(", ")})`,
+            ...Object.values(cols),
+          );
+          result.added++;
+        }
+      }
+    });
+    return result;
+  }
+
   // ---- Overview, settings, the background ----
 
   function summary() {
@@ -2305,6 +2705,12 @@ export function createInvoices(db: DatabaseSync, opts: InvoicesOptions) {
     setConfig,
     settings,
     summary,
+    overview,
+    preview,
+    exportCounts,
+    listStatements,
+    importCustomers,
+    importProducts,
     gauges,
     tick,
     deliver,

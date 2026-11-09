@@ -14,7 +14,10 @@ const { version } = JSON.parse(readFileSync(new URL("../package.json", import.me
 const port = Number(process.env.PORT ?? 8080);
 const dbPath = process.env.INVOICES_DB ?? "/data/invoices.db";
 const configPath = process.env.INVOICES_CONFIG?.trim() || "/config/invoices.yaml";
+const webDir = new URL("../dist/web", import.meta.url).pathname;
 const docsDir = new URL("../dist/docs", import.meta.url).pathname;
+// true to serve the API without the web UI (ADR 0018).
+const headless = process.env.INVOICES_HEADLESS === "true";
 const openapi = JSON.parse(readFileSync(new URL("../openapi.json", import.meta.url), "utf8")) as Record<string, unknown>;
 // Set it to keep /metrics off the port that is published or behind an ingress (ADR 0026).
 const metricsPort = process.env.INVOICES_METRICS_PORT ? Number(process.env.INVOICES_METRICS_PORT) : undefined;
@@ -67,6 +70,7 @@ const server = createServer(
     invoices,
     version,
     auth,
+    webDir: !headless && existsSync(webDir) ? webDir : undefined,
     docsDir: existsSync(docsDir) ? docsDir : undefined,
     openapi,
     serveMetrics: metricsPort === undefined,
@@ -76,7 +80,7 @@ const server = createServer(
 const metricsServer = metricsPort !== undefined ? createServer(createMetricsHandler(invoices, version)) : undefined;
 metricsServer?.listen(metricsPort, () => log("info", "metrics on their own port", { port: metricsPort }));
 
-server.listen(port, () => log("info", "invoices started", { version, port, db: dbPath, config: configPath }));
+server.listen(port, () => log("info", "invoices started", { version, port, db: dbPath, config: configPath, headless }));
 if (!publicUrl.startsWith("https://") && !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(publicUrl))
   log("warn", "INVOICES_PUBLIC_URL is not https: browsers will not keep secure cookies or allow passkeys. Put it behind TLS (ADR 0026)", { url: publicUrl });
 if (auth.secretsInClear)

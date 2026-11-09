@@ -11,9 +11,9 @@ recurring invoices, bank statements matched to invoices, invoices in foreign cur
 for your accountant. It does not keep the books, and it is not an integrator itself: only integrators with an API can
 be connected.
 
-**There are no screens yet.** No designs exist for Invoices, so this repository has the server, the API, the settings
-file, the integrator and its fake, the PDF, the links to other products, and the tests. There is no `web/`; everything
-is done through the API (its reference is at `/api/docs/`).
+Its pages follow the Invoices screens in the [ui](https://github.com/openasy/ui) Storybook: the overview of what is
+owed and overdue, invoices and credit notes from draft to GİB's answer, customers, products, payments and bank
+statements, recurring invoices and the exports. The image also serves the API and its reference at `/api/docs/`.
 
 ```
 invoices.yaml ──▶ invoices ──▶ GİB integrator (Nilvera's API): e-Fatura, e-Arşiv, status, cancel
@@ -199,17 +199,8 @@ docker compose up -d
 docker compose logs invoices | grep 'no owner yet'
 ```
 
-There is no default password (ADR 0013), and no screens yet to open the link in, so the owner is made through the
-sign-in API of [@openasy/auth](https://github.com/openasy/auth) with the token from the link's `?setup=`, then sets up
-two-step verification, which owners need before anything else, and makes an API token:
-
-```bash
-U=https://invoices.example.com/api/v1/auth; O="Origin: https://invoices.example.com"; J="content-type: application/json"
-curl -c jar -H "$O" -H "$J" -d '{"token":"<setup token>","email":"you@example.com","name":"You","password":"<a long password>"}' $U/setup
-curl -b jar -H "$O" -X POST $U/me/totp                      # add the secret to your authenticator app
-curl -b jar -H "$O" -H "$J" -d '{"code":"123456"}' $U/me/totp/confirm
-curl -b jar -H "$O" -H "$J" -d '{"name":"scripts","role":"editor"}' $U/tokens   # the token, shown once
-```
+Open the link from the log once to create the owner account; there is no default password (ADR 0013). Owners and
+admins who sign in with a password then add an authenticator app before anything else (ADR 0002).
 
 | Variable | Default | |
 | --- | --- | --- |
@@ -221,6 +212,7 @@ curl -b jar -H "$O" -H "$J" -d '{"name":"scripts","role":"editor"}' $U/tokens   
 | `INVOICES_SECRETS_KEY_FILE` | `/run/secrets/openasy-kek` | 32-byte key-encryption key: sign-in secrets |
 | `INVOICES_DB` | `/data/invoices.db` | SQLite file (WAL), on the `/data` volume; it holds the issued XML, so back it up |
 | `INVOICES_METRICS_PORT` | | Serve `/metrics` on this port only (ADR 0026) |
+| `INVOICES_HEADLESS` | `false` | `true` serves no pages; the API stays |
 | `INVOICES_PASSWORD_SIGN_IN`, `OPENASY_OIDC_*` | | Sign-in, as in every OpenAsy product ([@openasy/auth](https://github.com/openasy/auth)) |
 
 Viewers read everything; editors make and issue invoices, record payments and import statements; admins also answer
@@ -237,6 +229,7 @@ npm test           # the file, KDV, withholding and rounding, UBL-TR written and
                    # payments, reminders, recurring invoices, bank statements, TCMB, CRM, the PDF read back with
                    # pdf.js, the exports, the contracts, and every API response against openapi.json
 npm run openapi    # writes openapi.json after an API change; a test fails while it is out of date
+npm run dev        # the pages, with the API on :8080
 npm start          # the server, with INVOICES_DB and INVOICES_CONFIG pointing at local files
 ```
 
@@ -250,6 +243,9 @@ npm start          # the server, with INVOICES_DB and INVOICES_CONFIG pointing a
 - TCMB's bulletins, CRM's deals and SMTP are fakes in the tests (the mailer keeps what it is given).
 - The withholding shares, exemption codes, the seven-day rule and the e-Arşiv cancellation are as Invoices understood
   them when this was written; check them with your accountant and your integrator.
+
+The read-only Settings page is rebuilt here from published components (`web/src/FileSettings.tsx`) until the shared
+page is in a published `@openasy/ui`.
 
 ## Licence
 

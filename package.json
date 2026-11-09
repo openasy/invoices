@@ -10,10 +10,11 @@
     "url": "git+https://github.com/openasy/invoices.git"
   },
   "scripts": {
+    "dev": "vite --config web/vite.config.ts",
     "start": "node server/main.ts",
-    "build": "node scripts/build-docs.ts",
+    "build": "vite build --config web/vite.config.ts && node scripts/build-docs.ts",
     "openapi": "node scripts/openapi.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web",
     "lint": "oxlint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -22,15 +23,23 @@
   "prettier": "@openasy/code-style/prettier",
   "devDependencies": {
     "@openasy/code-style": "https://github.com/openasy/code-style/releases/download/v0.1.2/openasy-code-style-0.1.2.tgz",
+    "@openasy/ui": "https://github.com/openasy/ui/releases/download/v0.15.0/openasy-ui-0.15.0.tgz",
     "@types/node": "^26.6.5",
     "@types/nodemailer": "^8.0.2",
     "@types/pdfkit": "^0.17.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "ajv": "^8.20.0",
+    "lucide-react": "^1.59.0",
     "oxlint": "1.87.0",
     "pdfjs-dist": "^6.5.438",
     "prettier": "3.9.9",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "swagger-ui-dist": "^5.34.0",
     "typescript": "^7.0.2",
+    "vite": "^8.3.4",
     "vitest": "^5.0.5"
   },
   "engines": {

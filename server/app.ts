@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { extname, join, normalize } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { AuthError, mergeOpenApi, sendProblem, type Auth, type Role } from "@openasy/auth";
+import { AuthError, identityOrigin, mergeOpenApi, sendProblem, type Auth, type Role } from "@openasy/auth";
 import type { Invoices } from "./invoices.ts";
 import { log } from "./log.ts";
 import { countRequest, renderMetrics } from "./metrics.ts";
@@ -18,6 +18,8 @@ export interface AppOptions {
   auth: Auth;
   /** For tests and local scripts: one shared token with the admin role. main.ts never sets it. */
   adminToken?: string;
+  /** Built web UI; omit to run headless (ADR 0018). */
+  webDir?: string;
   /** Built API reference (Swagger UI), served at /api/docs. */
   docsDir?: string;
   /** The OpenAPI description, served at /api/openapi.json with this release's version. */
@@ -47,14 +49,19 @@ const TYPES: Record<string, string> = {
   ".css": "text/css",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".woff2": "font/woff2",
 };
 
-/** There are no pages here but the API reference, and it runs nothing from elsewhere. */
+// Identity keeps people's theme and language when they sign in through it; the pages read them there (ADR 0033).
+const IDENTITY = identityOrigin(process.env);
+
+/** The pages run nothing from elsewhere. */
 const SECURITY_HEADERS = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "no-referrer",
   "x-frame-options": "DENY",
-  "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+  "content-security-policy": `default-src 'self'; connect-src 'self'${IDENTITY ? ` ${IDENTITY}` : ""}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'`,
 };
 
 function send(res: ServerResponse, status: number, body: string | Buffer, type = "application/json", headers: Record<string, string> = {}) {
@@ -146,7 +153,7 @@ interface Route {
   handle: (ctx: Ctx) => unknown;
 }
 
-export function createApp({ db, invoices, version, auth, adminToken, docsDir, openapi, serveMetrics = true, products = [] }: AppOptions) {
+export function createApp({ db, invoices, version, auth, adminToken, webDir, docsDir, openapi, serveMetrics = true, products = [] }: AppOptions) {
   const spec = openapi && JSON.stringify({ ...mergeOpenApi(openapi), info: { ...(openapi.info as object), version } });
   const noContent = (res: ServerResponse) => {
     res.writeHead(204, SECURITY_HEADERS).end();
@@ -161,12 +168,20 @@ export function createApp({ db, invoices, version, auth, adminToken, docsDir, op
     { method: "GET", path: `${P}/version`, auth: "none", handle: () => ({ product: "invoices", version }) },
     { method: "GET", path: `${P}/products`, auth: "viewer", handle: () => ({ products }) },
     { method: "GET", path: `${P}/summary`, auth: "viewer", handle: () => I.summary() },
+    { method: "GET", path: `${P}/overview`, auth: "viewer", handle: () => I.overview() },
     // The settings, as the file sets them. There is no route that changes them.
     { method: "GET", path: `${P}/settings`, auth: "viewer", handle: () => I.settings() },
     { method: "GET", path: `${P}/rates`, auth: "viewer", handle: ({ url }) => I.getRate(url.searchParams) },
 
     { method: "GET", path: `${P}/customers`, auth: "viewer", handle: ({ url }) => ({ customers: I.listCustomers(url.searchParams) }) },
     { method: "POST", path: `${P}/customers`, auth: "editor", handle: async ({ res, who, body }) => created(res, I.createCustomer(who, await body())) },
+    {
+      method: "POST",
+      path: `${P}/customers/import`,
+      auth: "editor",
+      limit: 4 * 1024 * 1024,
+      handle: async ({ who, body }) => I.importCustomers(who, await body()),
+    },
     { method: "GET", path: `${P}/customers/:id`, auth: "viewer", handle: ({ params }) => I.getCustomer(params[0]!) },
     { method: "PATCH", path: `${P}/customers/:id`, auth: "editor", handle: async ({ who, params, body }) => I.updateCustomer(who, params[0]!, await body()) },
     { method: "DELETE", path: `${P}/customers/:id`, auth: "editor", handle: ({ res, who, params }) => (I.removeCustomer(who, params[0]!), noContent(res)) },
@@ -174,11 +189,20 @@ export function createApp({ db, invoices, version, auth, adminToken, docsDir, op
 
     { method: "GET", path: `${P}/catalog`, auth: "viewer", handle: ({ url }) => ({ items: I.listProducts(url.searchParams) }) },
     { method: "POST", path: `${P}/catalog`, auth: "editor", handle: async ({ res, who, body }) => created(res, I.createProduct(who, await body())) },
+    {
+      method: "POST",
+      path: `${P}/catalog/import`,
+      auth: "editor",
+      limit: 4 * 1024 * 1024,
+      handle: async ({ who, body }) => I.importProducts(who, await body()),
+    },
     { method: "PATCH", path: `${P}/catalog/:id`, auth: "editor", handle: async ({ who, params, body }) => I.updateProduct(who, params[0]!, await body()) },
     { method: "DELETE", path: `${P}/catalog/:id`, auth: "editor", handle: ({ res, who, params }) => (I.removeProduct(who, params[0]!), noContent(res)) },
 
     { method: "GET", path: `${P}/invoices`, auth: "viewer", handle: ({ url }) => ({ invoices: I.listInvoices(url.searchParams) }) },
     { method: "POST", path: `${P}/invoices`, auth: "editor", handle: async ({ res, who, body }) => created(res, I.createInvoice(who, await body())) },
+    // Totals as issuing would write them, for a draft being written; nothing is saved.
+    { method: "POST", path: `${P}/invoices/preview`, auth: "viewer", handle: async ({ body }) => I.preview(await body()) },
     { method: "GET", path: `${P}/invoices/:id`, auth: "viewer", handle: ({ params }) => I.getInvoice(params[0]!) },
     { method: "PATCH", path: `${P}/invoices/:id`, auth: "editor", handle: async ({ who, params, body }) => I.updateInvoice(who, params[0]!, await body()) },
     { method: "DELETE", path: `${P}/invoices/:id`, auth: "editor", handle: ({ res, who, params }) => (I.removeInvoice(who, params[0]!), noContent(res)) },
@@ -224,6 +248,7 @@ export function createApp({ db, invoices, version, auth, adminToken, docsDir, op
       limit: 8 * 1024 * 1024,
       handle: async ({ res, who, body }) => created(res, I.importStatement(who, await body())),
     },
+    { method: "GET", path: `${P}/bank/statements`, auth: "viewer", handle: () => ({ statements: I.listStatements() }) },
     { method: "GET", path: `${P}/bank/lines`, auth: "viewer", handle: ({ url }) => ({ lines: I.listBankLines(url.searchParams) }) },
     { method: "POST", path: `${P}/bank/lines/:id`, auth: "editor", handle: async ({ who, params, body }) => I.resolveBankLine(who, params[0]!, await body()) },
 
@@ -233,6 +258,7 @@ export function createApp({ db, invoices, version, auth, adminToken, docsDir, op
     { method: "PATCH", path: `${P}/recurring/:id`, auth: "editor", handle: async ({ who, params, body }) => I.updateRecurring(who, params[0]!, await body()) },
     { method: "DELETE", path: `${P}/recurring/:id`, auth: "editor", handle: ({ res, who, params }) => (I.removeRecurring(who, params[0]!), noContent(res)) },
 
+    { method: "GET", path: `${P}/exports/counts`, auth: "viewer", handle: ({ url }) => I.exportCounts(url.searchParams) },
     {
       method: "GET",
       path: `${P}/exports/invoices.csv`,
@@ -348,9 +374,15 @@ export function createApp({ db, invoices, version, auth, adminToken, docsDir, op
       return r.path;
     }
 
-    // No web screens yet: Invoices runs headless, with its API and the API reference.
+    if (path.startsWith("/api/")) return (problem(res, 404, "not-found"), "/api/*");
+
+    if (webDir && (req.method === "GET" || req.method === "HEAD")) {
+      if (!(await serveFile(res, webDir, path === "/" ? "index.html" : path))) send(res, 200, await readFile(join(webDir, "index.html")), TYPES[".html"]);
+      return "/web";
+    }
+
     problem(res, 404, "not-found");
-    return path.startsWith("/api/") ? "/api/*" : "unmatched";
+    return "unmatched";
   }
 
   return async (req: IncomingMessage, res: ServerResponse) => {

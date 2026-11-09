@@ -219,6 +219,21 @@ const InvoiceDetail = {
       creditNotes: arr(obj({ id: str, number: nul(str), status: str, payable: money, issueDate: nul(day) })),
       reminders: arr(obj({ kind: { type: "string", enum: ["before", "after"] }, days: int, sentAt: dt, error: nul(str) })),
       events: arr(obj({ at: dt, by: str, what: str, detail: nul(str) })),
+      reminderPlan: {
+        ...arr(
+          obj({
+            kind: { type: "string", enum: ["before", "after"] },
+            days: int,
+            on: day,
+            state: {
+              type: "string",
+              enum: ["sent", "failed", "planned", "passed", "stopped"],
+              description: "planned: still to go; passed: its day went by without one (a later one was due); stopped: the invoice is paid.",
+            },
+          }),
+        ),
+        description: "The reminders an owed invoice gets by the file's days, at reminders.at; empty for anything else.",
+      },
     }),
   ],
 };
@@ -271,6 +286,10 @@ const Recurring = obj({
   made: int,
   lastInvoice: nul(str),
   lastError: nul(str),
+  totals: nul({
+    ...obj({ net: money, kdv: money, withheld: money, payable: money }),
+    description: "What each invoice comes to under the applied file; null when its lines no longer pass it.",
+  }),
   createdAt: dt,
   createdBy: str,
 });
@@ -329,6 +348,83 @@ const schemas: Record<string, S> = {
     refused: int,
     unmatchedBankLines: int,
     openBillableItems: int,
+  }),
+  Overview: obj({
+    currency: { type: "string", description: "The file's currency; invoices in another count at the rate they were issued at." },
+    today: day,
+    owed: obj({ amount: money, invoices: int }),
+    overdue: obj({ amount: money, invoices: int, oldestDays: int }),
+    collected: obj({ month: { type: "string", examples: ["2026-11"] }, amount: money, payments: int, fromBank: int }),
+    daysToPay: obj({
+      last90: nul({ type: "integer", description: "Average days from issue to paid in full, of invoices paid in the last 90 days." }),
+      previous90: nul({ type: "integer", description: "The same for the 90 days before." }),
+    }),
+    waiting: obj({ drafts: int, refused: { type: "integer", description: "Refused by the integrator, or failed at GİB." } }),
+    unmatchedBankLines: int,
+    months: {
+      ...arr(obj({ month: str, paid: money, owed: money })),
+      description: "The last six months by issue month, without KDV: the part paid and the part still owed.",
+    },
+    ages: arr(obj({ age: { type: "string", enum: ["current", "1-30", "31-60", "60+"] }, amount: money })),
+    customers: arr(
+      obj({
+        customer: obj({ id: str, name: str }),
+        invoices: int,
+        owed: money,
+        overdue: money,
+        oldest: nul(obj({ id: str, number: str, daysOverdue: int })),
+      }),
+    ),
+  }),
+  PreviewRequest: obj(
+    {
+      customer: { description: "A customer id, or { id }, { taxId }, { email } or { crmCompany }; the channel follows their e-Fatura check." },
+      currency: str,
+      lines: arr(ref("LineInput")),
+      kind: { type: "string", enum: ["invoice", "credit_note"] },
+      original: nul({ type: "string", description: "For a credit note: the invoice it corrects, whose channel it takes." }),
+    },
+    ["lines"],
+    false,
+  ),
+  Preview: obj({
+    currency: str,
+    lines: arr(obj({ net: money, kdv: money, withheld: money })),
+    totals: obj({
+      gross: money,
+      discount: money,
+      net: money,
+      kdv: money,
+      withheld: money,
+      total: money,
+      payable: money,
+      kdvBreakdown: arr(Breakdown),
+      withholdingBreakdown: arr(obj({ code: str, share: str, base: money, amount: money })),
+    }),
+    type: nul({ type: "string", enum: ["SATIS", "TEVKIFAT", "ISTISNA", "IADE"] }),
+    typeError: nul({ type: "string", description: "Why these lines cannot be one invoice, such as withholding and exempt lines together." }),
+    channel: { type: "string", enum: ["e-fatura", "e-arsiv"] },
+    channelKnown: { type: "boolean", description: "false until the customer is checked: e-Arşiv unless issuing finds them on GİB's list." },
+    alias: nul(str),
+    profile: { type: "string", enum: ["TEMELFATURA", "TICARIFATURA", "EARSIVFATURA"] },
+    next: { type: "string", description: "The number it would take if issued now; issuing gives it for real." },
+  }),
+  ExportCounts: obj({ from: day, to: day, invoices: int, creditNotes: int, payments: int, xml: int }),
+  StatementList: obj({
+    statements: arr(obj({ id: str, account: str, filename: nul(str), importedAt: dt, importedBy: str, lines: int })),
+  }),
+  ImportRequest: obj(
+    { content: { type: "string", description: "The CSV file's text: a header row naming the fields, ; or , between them." } },
+    ["content"],
+    false,
+  ),
+  ImportResult: obj({
+    added: int,
+    updated: int,
+    errors: {
+      ...arr(obj({ row: int, message: str })),
+      description: "Rows that are wrong, by their line in the file. When there are any, nothing is written.",
+    },
   }),
   Settings: obj(
     {
@@ -514,6 +610,14 @@ const paths: Record<string, S> = {
       responses: { "200": ok(ref("Summary")) },
     }),
   },
+  "/api/v1/overview": {
+    get: op("viewer", {
+      operationId: "overview",
+      tags: ["Product"],
+      summary: "What is owed, overdue and collected, by age, month and customer, in the file's currency",
+      responses: { "200": ok(ref("Overview")) },
+    }),
+  },
   "/api/v1/settings": {
     get: op("viewer", {
       operationId: "settings",
@@ -547,6 +651,17 @@ const paths: Record<string, S> = {
       summary: "Add a customer",
       requestBody: json(ref("CustomerInput")),
       responses: { "201": ok(ref("Customer"), "Added."), "400": problem, "409": problem, "422": problem },
+    }),
+  },
+  "/api/v1/customers/import": {
+    post: op("editor", {
+      operationId: "importCustomers",
+      tags: ["Customers"],
+      summary: "Add or change customers from a CSV file, all or none",
+      description:
+        "The header names the fields: name, tax_id, tax_office, street, district, city, postal_code, country, email, phone, currency, payment_days, notes. A row whose tax number is a customer's already changes that customer; the others are added.",
+      requestBody: json(ref("ImportRequest")),
+      responses: { "200": ok(ref("ImportResult"), "Written, or nothing written and the wrong rows named."), "400": problem, "413": problem, "422": problem },
     }),
   },
   "/api/v1/customers/{id}": {
@@ -600,6 +715,17 @@ const paths: Record<string, S> = {
       responses: { "201": ok(ref("CatalogItem"), "Added."), "400": problem, "409": problem, "422": problem },
     }),
   },
+  "/api/v1/catalog/import": {
+    post: op("editor", {
+      operationId: "importCatalog",
+      tags: ["Catalog"],
+      summary: "Add or change products and services from a CSV file, all or none",
+      description:
+        "The header names the fields: code, name, unit, unit_price (2400 or 2.400,50), currency, kdv_rate, withholding, exemption, stock. A row whose code is a product's already changes it; the others are added.",
+      requestBody: json(ref("ImportRequest")),
+      responses: { "200": ok(ref("ImportResult"), "Written, or nothing written and the wrong rows named."), "400": problem, "413": problem, "422": problem },
+    }),
+  },
   "/api/v1/catalog/{id}": {
     patch: op("editor", {
       operationId: "updateCatalogItem",
@@ -639,6 +765,17 @@ const paths: Record<string, S> = {
       description: "A draft has no number; issuing gives it one.",
       requestBody: json(ref("InvoiceInput")),
       responses: { "201": ok(ref("InvoiceDetail"), "Drafted."), "400": problem, "404": problem, "409": problem, "422": problem },
+    }),
+  },
+  "/api/v1/invoices/preview": {
+    post: op("viewer", {
+      operationId: "previewInvoice",
+      tags: ["Invoices"],
+      summary: "A draft's totals, type, channel and next number, as issuing would write them",
+      description:
+        "The lines are read and rounded as a saved draft's are (each line once, half up; the totals are sums of the lines). Nothing is saved, and the number is only what issuing now would give. A line without a name yet is counted.",
+      requestBody: json(ref("PreviewRequest")),
+      responses: { "200": ok(ref("Preview")), "400": problem, "404": problem, "422": problem },
     }),
   },
   "/api/v1/invoices/{id}": {
@@ -747,6 +884,12 @@ const paths: Record<string, S> = {
   },
 
   "/api/v1/bank/statements": {
+    get: op("viewer", {
+      operationId: "listStatements",
+      tags: ["Payments"],
+      summary: "Statements imported, the latest first",
+      responses: { "200": ok(ref("StatementList")) },
+    }),
     post: op("editor", {
       operationId: "importStatement",
       tags: ["Payments"],
@@ -812,6 +955,15 @@ const paths: Record<string, S> = {
     }),
   },
 
+  "/api/v1/exports/counts": {
+    get: op("viewer", {
+      operationId: "exportCounts",
+      tags: ["Exports"],
+      summary: "How many invoices, credit notes, payments and XML files the exports of a period hold",
+      parameters: range,
+      responses: { "200": ok(ref("ExportCounts")), "422": problem },
+    }),
+  },
   "/api/v1/exports/invoices.csv": {
     get: op("viewer", {
       operationId: "exportInvoices",
