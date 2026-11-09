@@ -105,7 +105,7 @@ export function OverviewPage(ctx: Ctx) {
               header: t("col.oldest"),
               cell: (r) =>
                 r.oldest ? (
-                  <button type="button" onClick={() => navigate(`/invoices/${r.oldest!.id}`)} className="text-left text-xs text-fg hover:underline">
+                  <button type="button" onClick={() => navigate(`/invoices/${r.oldest!.id}`)} className="text-start text-xs text-fg hover:underline">
                     {t("overview.oldestLate", { number: r.oldest.number, count: r.oldest.daysOverdue })}
                   </button>
                 ) : (

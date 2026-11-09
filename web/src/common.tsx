@@ -5,6 +5,7 @@ import { StatusBadge, type Tone } from "@openasy/ui";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, MfaSetupRequired, Unauthorized, type Status, type Totals } from "./api.ts";
 import type { T } from "./i18n.ts";
+import { viewerLocale } from "./i18n.ts";
 
 /** Data loading with the session; when it ends, the sign-in screen comes back. */
 export function useApi() {
@@ -70,7 +71,7 @@ export function Code({ children, label }: { children: ReactNode; label?: string 
 // ---------------------------------------------------------------- formatting
 
 /** 4500050 kuruş is "45,000.50 TL" in English and "45.000,50 TL" in Turkish; TRY is written TL, as people write it. */
-export function money(minor: number, currency = "TRY", locale?: string) {
+export function money(minor: number, currency = "TRY", locale: string = viewerLocale()) {
   const v = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(minor / 100);
   return `${v} ${currency === "TRY" ? "TL" : currency}`;
 }
@@ -89,7 +90,7 @@ export function parseMoney(raw: string): number | null {
 }
 
 /** Minor units as a field shows them to be changed: 240000 is "2400", 240050 is "2400.50" or "2400,50". */
-export function moneyInput(minor: number, locale?: string) {
+export function moneyInput(minor: number, locale: string = viewerLocale()) {
   const whole = Math.trunc(minor / 100);
   const cents = Math.abs(minor % 100);
   if (!cents) return String(whole);
@@ -103,16 +104,16 @@ export function parseQty(raw: string): number | null {
   return raw.trim() && Number.isFinite(n) && n > 0 ? n : null;
 }
 
-export const qty = (n: number, locale?: string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(n);
-export const num = (n: number, locale?: string) => new Intl.NumberFormat(locale).format(n);
+export const qty = (n: number, locale: string = viewerLocale()) => new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).format(n);
+export const num = (n: number, locale: string = viewerLocale()) => new Intl.NumberFormat(locale).format(n);
 
-export const day = (d: string, locale?: string) =>
+export const day = (d: string, locale: string = viewerLocale()) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-export const shortDay = (d: string, locale?: string) =>
+export const shortDay = (d: string, locale: string = viewerLocale()) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: "UTC" });
-export const monthName = (m: string, locale?: string, long = false) =>
+export const monthName = (m: string, locale: string = viewerLocale(), long = false) =>
   new Date(`${m}-15T12:00:00Z`).toLocaleDateString(locale, { month: long ? "long" : "short", ...(long && { year: "numeric" }), timeZone: "UTC" });
-export const when = (iso: string, locale?: string) =>
+export const when = (iso: string, locale: string = viewerLocale()) =>
   new Date(iso).toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** Today as YYYY-MM-DD in the browser's zone. */
@@ -172,25 +173,25 @@ export function TotalsList({
         {totals.discount > 0 && (
           <>
             <dt className="text-fg-muted">{t("totals.discount")}</dt>
-            <dd className="text-right font-mono">−{m(totals.discount)}</dd>
+            <dd className="text-end font-mono">−{m(totals.discount)}</dd>
           </>
         )}
         <dt className="text-fg-muted">{t("totals.net")}</dt>
-        <dd className="text-right font-mono">{m(totals.net)}</dd>
+        <dd className="text-end font-mono">{m(totals.net)}</dd>
         <dt className="text-fg-muted">{t("totals.kdv", { rates: [...new Set(rates)].join(", ") || "0%" })}</dt>
-        <dd className="text-right font-mono">{m(totals.kdv)}</dd>
+        <dd className="text-end font-mono">{m(totals.kdv)}</dd>
         {totals.withholdingBreakdown.map((w) => (
           <div key={w.code} className="contents">
             <dt className="text-fg-muted">{t("totals.withheld", { code: w.code, share: w.share })}</dt>
-            <dd className="text-right font-mono">−{m(w.amount)}</dd>
+            <dd className="text-end font-mono">−{m(w.amount)}</dd>
           </div>
         ))}
         <dt className="font-semibold">{t("totals.payable")}</dt>
-        <dd className="text-right font-mono font-semibold">{m(totals.payable)}</dd>
+        <dd className="text-end font-mono font-semibold">{m(totals.payable)}</dd>
         {rate && tryPayable !== undefined && tryPayable !== null && (
           <>
             <dt className="text-fg-muted">{t("totals.inHome", { rate })}</dt>
-            <dd className="text-right font-mono">{m(tryPayable, home)}</dd>
+            <dd className="text-end font-mono">{m(tryPayable, home)}</dd>
           </>
         )}
       </dl>

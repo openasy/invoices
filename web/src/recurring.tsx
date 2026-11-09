@@ -258,7 +258,7 @@ export function RecurringPage(ctx: Ctx) {
               header: t("col.customer"),
               sortValue: (r) => nameOf(r.customer),
               cell: (r) => (
-                <button type="button" onClick={() => setEditing(r)} className="flex flex-col text-left">
+                <button type="button" onClick={() => setEditing(r)} className="flex flex-col text-start">
                   <span className="font-medium text-fg hover:underline">{nameOf(r.customer)}</span>
                   <span className="text-2xs text-fg-muted">{r.name}</span>
                 </button>

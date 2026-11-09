@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CatalogItem, Line, LineInput, Preview, Settings } from "./api.ts";
 import { money, moneyInput, parseMoney, parseQty, type Call } from "./common.tsx";
 import type { T } from "./i18n.ts";
+import { viewerLocale } from "./i18n.ts";
 
 export interface EditLine {
   key: string;
@@ -25,7 +26,7 @@ export interface EditLine {
 let seq = 0;
 export const lineKey = () => `l${++seq}`;
 
-export function fromLine(l: Line | LineInput, locale?: string): EditLine {
+export function fromLine(l: Line | LineInput, locale: string = viewerLocale()): EditLine {
   const w = l.withholding;
   return {
     key: lineKey(),
@@ -43,7 +44,7 @@ export function fromLine(l: Line | LineInput, locale?: string): EditLine {
   };
 }
 
-export function fromProduct(p: CatalogItem, locale?: string): EditLine {
+export function fromProduct(p: CatalogItem, locale: string = viewerLocale()): EditLine {
   return {
     key: lineKey(),
     product: p.id,
@@ -211,7 +212,7 @@ export function LinesEditor({
               <TextField className="inv-line-name" label={t("editor.name", { n })} value={l.name} onChange={(e) => set(l.key, { name: e.target.value })} />
             )}
             {total && (
-              <p className="inv-line-total m-0 text-right text-2xs text-fg-muted">
+              <p className="inv-line-total m-0 text-end text-2xs text-fg-muted">
                 {t("editor.lineTotal", {
                   net: money(total.net, currency, locale),
                   kdv: money(total.kdv, currency, locale),

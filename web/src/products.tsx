@@ -8,7 +8,7 @@ import type { Ctx } from "./App.tsx";
 import type { CatalogItem, ImportResult } from "./api.ts";
 import { FileButton, money, moneyInput, Notice, parseMoney, patch, post, readFile, useLoad, type Note } from "./common.tsx";
 import { ImportErrors } from "./customers.tsx";
-import { useT } from "./i18n.ts";
+import { useT, viewerLocale } from "./i18n.ts";
 
 interface Form {
   code: string;
@@ -22,7 +22,7 @@ interface Form {
   stock: boolean;
 }
 
-const formOf = (item: CatalogItem | undefined, currency: string, locale?: string): Form => ({
+const formOf = (item: CatalogItem | undefined, currency: string, locale: string = viewerLocale()): Form => ({
   code: item?.code ?? "",
   name: item?.name ?? "",
   unit: item?.unit ?? "C62",
@@ -258,9 +258,9 @@ export function ProductsPage(ctx: Ctx) {
               header: t("customers.name"),
               sortValue: (p) => p.name,
               cell: (p) => (
-                <button type="button" onClick={() => setEditing(p)} className="text-left text-fg hover:underline">
+                <button type="button" onClick={() => setEditing(p)} className="text-start text-fg hover:underline">
                   {p.name}
-                  {!p.active && <span className="ml-1.5 text-2xs text-fg-muted">{t("products.offList")}</span>}
+                  {!p.active && <span className="ms-1.5 text-2xs text-fg-muted">{t("products.offList")}</span>}
                 </button>
               ),
             },

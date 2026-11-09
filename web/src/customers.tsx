@@ -227,7 +227,7 @@ export function CustomersPage(ctx: Ctx) {
       width: "26%",
       sortValue: (c) => c.name,
       cell: (c) => (
-        <button type="button" onClick={() => setEditing(c)} className="flex min-w-0 flex-col text-left">
+        <button type="button" onClick={() => setEditing(c)} className="flex min-w-0 flex-col text-start">
           <span className="truncate font-medium text-fg hover:underline">{c.name}</span>
           <span className="truncate text-2xs text-fg-muted">{c.email ?? t("customers.noEmail")}</span>
         </button>

@@ -295,15 +295,15 @@ function InvoiceView({ inv, reload, ...ctx }: Ctx & { inv: InvoiceDetail; reload
             flush
           >
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
+              <table className="w-full min-w-[640px] text-start text-sm">
                 <caption className="sr-only">{t("invoice.linesCaption")}</caption>
                 <thead className="bg-canvas text-xs text-fg-muted">
                   <tr>
                     <th className="px-3 py-1.5 font-semibold">{t("col.item")}</th>
-                    <th className="px-3 py-1.5 text-right font-semibold">{t("editor.qty")}</th>
-                    <th className="px-3 py-1.5 text-right font-semibold">{t("editor.price")}</th>
-                    <th className="px-3 py-1.5 text-right font-semibold">{t("editor.kdv")}</th>
-                    <th className="px-3 py-1.5 text-right font-semibold">{t("col.total")}</th>
+                    <th className="px-3 py-1.5 text-end font-semibold">{t("editor.qty")}</th>
+                    <th className="px-3 py-1.5 text-end font-semibold">{t("editor.price")}</th>
+                    <th className="px-3 py-1.5 text-end font-semibold">{t("editor.kdv")}</th>
+                    <th className="px-3 py-1.5 text-end font-semibold">{t("col.total")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -323,12 +323,12 @@ function InvoiceView({ inv, reload, ...ctx }: Ctx & { inv: InvoiceDetail; reload
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-1.5 text-right font-mono text-xs">
+                      <td className="px-3 py-1.5 text-end font-mono text-xs">
                         {qty(l.quantity, locale)} {ctx.settings.units.find((u) => u.code === l.unit)?.name.toLocaleLowerCase(locale) ?? l.unit}
                       </td>
-                      <td className="px-3 py-1.5 text-right font-mono text-xs">{m(l.unitPrice)}</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-xs">{l.kdvRate}%</td>
-                      <td className="px-3 py-1.5 text-right font-mono text-xs">{m(l.net)}</td>
+                      <td className="px-3 py-1.5 text-end font-mono text-xs">{m(l.unitPrice)}</td>
+                      <td className="px-3 py-1.5 text-end font-mono text-xs">{l.kdvRate}%</td>
+                      <td className="px-3 py-1.5 text-end font-mono text-xs">{m(l.net)}</td>
                     </tr>
                   ))}
                 </tbody>
